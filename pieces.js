@@ -12,6 +12,7 @@ const SPEED_MAP = {
     S: 3.4,
     DL: 2.6
 };
+const SPEED_MULTIPLIER = 0.85;
 
 class Player {
     constructor(id, x, y, team, role) {
@@ -26,7 +27,7 @@ class Player {
         // MOVEMENT DATA
         this.path = []; // The recorded line
         this.pathIndex = 0; // Where are they on the line?
-        this.speed = SPEED_MAP[role] ?? 3.0; // Slightly slower baseline
+        this.speed = (SPEED_MAP[role] ?? 3.0) * SPEED_MULTIPLIER; // Slightly slower baseline
         
         this.hasBall = (role === "QB"); // Only QB starts with ball
         this.isDead = false;

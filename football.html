@@ -109,7 +109,7 @@
 				<div id="timer">PREP: 5</div>
 			</div>
 			<div style="text-align:center;">
-				<button id="snapBtn" onclick="snapBall()">SNAP BALL</button>
+				<button id="snapBtn" tabindex="-1" onclick="snapBall()">SNAP BALL</button>
 			</div>
 		</div>
 	</div>
@@ -130,6 +130,7 @@ const SPEED_MAP = {
 	S: 3.4,
 	DL: 2.6
 };
+const SPEED_MULTIPLIER = 0.85;
 
 class Player {
 	constructor(id, x, y, team, role) {
@@ -144,7 +145,7 @@ class Player {
 		// MOVEMENT DATA
 		this.path = []; // The recorded line
 		this.pathIndex = 0; // Where are they on the line?
-		this.speed = SPEED_MAP[role] ?? 3.0; // Slightly slower baseline
+		this.speed = (SPEED_MAP[role] ?? 3.0) * SPEED_MULTIPLIER; // Slightly slower baseline
 
 		this.hasBall = (role === "QB"); // Only QB starts with ball
 		this.isDead = false;
@@ -510,22 +511,49 @@ function draw() {
 draw();
 
 const receiverList = document.getElementById("receiverList");
+let lastTargetsKey = "";
+const holdStarts = new Map();
 
-function renderReceiverList() {
-	if (!receiverList || typeof getThrowTargets !== "function") return;
-
-	const targets = getThrowTargets();
+function renderReceiverList(targets) {
+	if (!receiverList) return;
 	receiverList.innerHTML = "";
 
 	targets.slice(0, 5).forEach((player, index) => {
 		const item = document.createElement("li");
-		item.textContent = `${index + 1}: ${player.role} #${player.id}`;
+		const button = document.createElement("button");
+		button.type = "button";
+		button.tabIndex = -1;
+		button.textContent = `${index + 1}: ${player.role} #${player.id}`;
+		button.addEventListener("pointerdown", () => {
+			holdStarts.set(index, Date.now());
+		});
+		button.addEventListener("pointerup", () => {
+			const started = holdStarts.get(index);
+			holdStarts.delete(index);
+			if (!started) return;
+			const heldMs = Date.now() - started;
+			const isLob = heldMs >= LOB_HOLD_MS;
+			attemptThrow(targets[index], isLob);
+		});
+		button.addEventListener("pointerleave", () => {
+			holdStarts.delete(index);
+		});
+		item.appendChild(button);
 		receiverList.appendChild(item);
 	});
 }
 
 function syncControls() {
-	renderReceiverList();
+	if (!receiverList) {
+		requestAnimationFrame(syncControls);
+		return;
+	}
+	const targets = getThrowTargets();
+	const key = targets.slice(0, 5).map(p => p.id).join(",");
+	if (key !== lastTargetsKey) {
+		lastTargetsKey = key;
+		renderReceiverList(targets);
+	}
 	requestAnimationFrame(syncControls);
 }
 
