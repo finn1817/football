@@ -74,6 +74,13 @@ function draw() {
         ctx.fillText(p.role, p.x, p.y+4);
     });
 
+    if (ballFlight?.active) {
+        ctx.fillStyle = ballFlight.lob ? "#d2b48c" : "brown";
+        ctx.beginPath();
+        ctx.arc(ballFlight.x, ballFlight.y, ballFlight.lob ? 7 : 6, 0, Math.PI * 2);
+        ctx.fill();
+    }
+
     // Loop
     updateGame();
     requestAnimationFrame(draw);
