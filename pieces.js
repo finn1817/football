@@ -29,7 +29,7 @@ class Player {
         this.pathIndex = 0; // Where are they on the line?
         this.speed = (SPEED_MAP[role] ?? 3.0) * SPEED_MULTIPLIER; // Slightly slower baseline
         
-        this.hasBall = (role === "QB"); // Only QB starts with ball
+        this.hasBall = (role === "QB"); // QB starts with ball
         this.isDead = false;
     }
 
