@@ -236,12 +236,14 @@ function handleThrowKeyUp(key) {
 window.addEventListener('keydown', e => {
     if (e.repeat) return;
     if (e.key >= '1' && e.key <= String(KEY_THROW_MAX)) {
+        e.preventDefault();
         handleThrowKeyDown(e.key);
     }
 });
 
 window.addEventListener('keyup', e => {
     if (e.key >= '1' && e.key <= String(KEY_THROW_MAX)) {
+        e.preventDefault();
         handleThrowKeyUp(e.key);
     }
 });
