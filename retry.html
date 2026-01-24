@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1" />
+	<title>Pocket Bowl Retry</title>
+	<style>
+		/* Basic page reset */
+		body {
+			margin: 0;
+			background: #222;
+			height: 100vh;
+			color: white;
+			font-family: monospace;
+		}
+
+		/* Layout wrapper */
+		#layout {
+			display: flex;
+			justify-content: center;
+			align-items: center;
+			gap: 24px;
+			height: 100vh;
+			padding: 20px;
+			box-sizing: border-box;
+		}
+
+		/* Controls panel */
+		#controlsPanel {
+			width: 260px;
+			height: 900px;
+			background: #111;
+			border: 2px solid #2f2f2f;
+			box-shadow: 0 0 20px rgba(0,0,0,0.5);
+			padding: 16px;
+			box-sizing: border-box;
+			display: flex;
+			flex-direction: column;
+			gap: 12px;
+		}
+		#controlsPanel h2 {
+			margin: 0 0 6px 0;
+			font-size: 18px;
+			text-align: center;
+		}
+		#controlsPanel .section {
+			background: #1a1a1a;
+			border: 1px solid #2c2c2c;
+			padding: 10px;
+			border-radius: 6px;
+		}
+		#controlsPanel ul {
+			margin: 8px 0 0 0;
+			padding: 0 0 0 16px;
+		}
+		#controlsPanel li {
+			margin: 4px 0;
+		}
+		#controlsPanel .hint {
+			color: #b5b5b5;
+			font-size: 12px;
+		}
+
+		/* Game container */
+		#gameContainer {
+			position: relative;
+			width: 540px;
+			height: 900px;
+			box-shadow: 0 0 20px rgba(0,0,0,0.5);
+			background: black;
+		}
+		canvas {
+			background: #2e8b57;
+		}
+
+		/* HUD overlay */
+		#ui-layer {
+			position: absolute;
+			top: 0;
+			left: 0;
+			width: 100%;
+			height: 100%;
+			pointer-events: none;
+			display: flex;
+			flex-direction: column;
+			justify-content: space-between;
+			padding: 20px;
+			box-sizing: border-box;
+		}
+		h1 {
+			margin: 0;
+			text-shadow: 2px 2px black;
+		}
+		#timer {
+			font-size: 40px;
+			color: yellow;
+			font-weight: bold;
+		}
+		button {
+			pointer-events: auto;
+			padding: 10px 20px;
+			cursor: pointer;
+			font-size: 16px;
+			background: orange;
+			border: none;
+			font-weight: bold;
+		}
+	</style>
+</head>
+<body>
+
+<!-- Layout -->
+<div id="layout">
+	<!-- Controls Panel -->
+	<aside id="controlsPanel">
+		<h2>CONTROLS</h2>
+		<div class="section">
+			<div><strong>Prep</strong></div>
+			<div>Drag blue players to draw routes.</div>
+		</div>
+		<div class="section">
+			<div><strong>Throw</strong></div>
+			<div>Press 1–5 to pass. Hold to lob.</div>
+			<ul id="receiverList"></ul>
+			<div class="hint">Numbers map to the labeled receivers on the field.</div>
+		</div>
+		<div class="section">
+			<div><strong>Snap</strong></div>
+			<div>Click SNAP BALL to start the play.</div>
+		</div>
+	</aside>
+
+	<!-- Game Container -->
+	<div id="gameContainer">
+		<canvas id="gameCanvas" width="540" height="900"></canvas>
+
+		<!-- HUD -->
+		<div id="ui-layer">
+			<div style="text-align:center;">
+				<h1>POCKET BOWL</h1>
+				<div id="timer">PREP: 5</div>
+			</div>
+			<div style="text-align:center;">
+				<button id="snapBtn" tabindex="-1">SNAP BALL</button>
+			</div>
+		</div>
+	</div>
+</div>
+
+</body>
+</html>
