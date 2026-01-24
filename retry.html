@@ -87,13 +87,27 @@
 			padding: 20px;
 			box-sizing: border-box;
 		}
-		#hudButtons {
-			position: absolute;
-			right: 16px;
-			bottom: 16px;
+		#sidePanel {
+			width: 220px;
+			height: 900px;
+			background: #111;
+			border: 2px solid #2f2f2f;
+			box-shadow: 0 0 20px rgba(0,0,0,0.5);
+			padding: 16px;
+			box-sizing: border-box;
 			display: flex;
+			flex-direction: column;
+			gap: 12px;
+		}
+		#sidePanel h2 {
+			margin: 0 0 6px 0;
+			font-size: 18px;
+			text-align: center;
+		}
+		#hudButtons {
+			display: flex;
+			flex-direction: column;
 			gap: 10px;
-			pointer-events: auto;
 		}
 		h1 {
 			margin: 0;
@@ -148,13 +162,18 @@
 				<h1>POCKET BOWL</h1>
 				<div id="timer">PREP: 5</div>
 			</div>
-			<div id="hudButtons">
-				<button id="snapBtn" tabindex="-1">SNAP BALL</button>
-				<button id="pauseBtn" tabindex="-1">PAUSE</button>
-				<button id="resetBtn" tabindex="-1">RESET</button>
-			</div>
 		</div>
 	</div>
+
+	<!-- Right Side Buttons Panel -->
+	<aside id="sidePanel">
+		<h2>GAME</h2>
+		<div id="hudButtons">
+			<button id="snapBtn" tabindex="-1">SNAP BALL</button>
+			<button id="pauseBtn" tabindex="-1">PAUSE</button>
+			<button id="resetBtn" tabindex="-1">RESET</button>
+		</div>
+	</aside>
 </div>
 
 <!-- HUD Button Logic (Step 1 only) -->
