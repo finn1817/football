@@ -1,6 +1,15 @@
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
 
+const container = document.getElementById("gameContainer");
+if (container) {
+    const rect = container.getBoundingClientRect();
+    if (rect.width && rect.height) {
+        canvas.width = rect.width;
+        canvas.height = rect.height;
+    }
+}
+
 // --- EVENT LISTENERS ---
 canvas.addEventListener('mousedown', e => getPos(e, 'start'));
 canvas.addEventListener('mousemove', e => getPos(e, 'move'));
@@ -73,6 +82,15 @@ function draw() {
         ctx.textAlign = "center";
         ctx.fillText(p.role, p.x, p.y+4);
     });
+
+    if (typeof getThrowTargets === "function") {
+        const targets = getThrowTargets();
+        ctx.font = "12px Arial";
+        ctx.fillStyle = "#ffe66d";
+        targets.slice(0, 5).forEach((p, idx) => {
+            ctx.fillText(String(idx + 1), p.x, p.y - 18);
+        });
+    }
 
     if (ballFlight?.active) {
         ctx.fillStyle = ballFlight.lob ? "#d2b48c" : "brown";

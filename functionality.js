@@ -4,7 +4,8 @@ let countdown = 5;
 let ballCarrier = roster[0]; // Start with QB
 
 const LOB_HOLD_MS = 400;
-let pointerDownTarget = null;
+const KEY_THROW_MAX = 5;
+let keyHoldStart = {};
 let ballFlight = null;
 
 // --- INPUT HANDLING (Drawing Paths) ---
@@ -33,28 +34,6 @@ function handleInput(type, x, y) {
     }
 
     if (!gameActive || ballFlight?.active) return;
-
-    if (type === 'start') {
-        // Identify intended receiver after the snap
-        const target = roster.find(p => {
-            if (p.team !== "offense" || !ballCarrier || !ballCarrier.hasBall || ballCarrier.team !== "offense") {
-                return false;
-            }
-            if (p.id === ballCarrier.id) return false;
-            return Math.hypot(p.x - x, p.y - y) < 30;
-        });
-
-        if (target) {
-            pointerDownTarget = { player: target, started: Date.now() };
-        }
-    } else if (type === 'end' && pointerDownTarget) {
-        const heldMs = Date.now() - pointerDownTarget.started;
-        const isLob = heldMs >= LOB_HOLD_MS;
-        attemptThrow(pointerDownTarget.player, isLob);
-        pointerDownTarget = null;
-    } else if (type === 'move' && !pointerDownTarget) {
-        selectedPlayer = null;
-    }
 }
 
 // --- GAME LOGIC ---
@@ -133,7 +112,7 @@ function resetGame() {
     countdown = 5;
     roster.forEach(p => p.reset());
     ballCarrier = roster[0];
-    pointerDownTarget = null;
+    keyHoldStart = {};
     ballFlight = null;
     document.getElementById('timer').innerText = "PREP: 5";
 }
@@ -226,3 +205,43 @@ function pointToSegmentDistance(px, py, x1, y1, x2, y2) {
 function lerp(a, b, t) {
     return a + (b - a) * t;
 }
+
+function getThrowTargets() {
+    return roster.filter(p => p.team === "offense" && p.role !== "QB");
+}
+
+function handleThrowKeyDown(key) {
+    if (!gameActive || prepPhase || ballFlight?.active) return;
+    if (keyHoldStart[key]) return;
+    keyHoldStart[key] = Date.now();
+}
+
+function handleThrowKeyUp(key) {
+    if (!gameActive || prepPhase || ballFlight?.active) return;
+    const started = keyHoldStart[key];
+    if (!started) return;
+    delete keyHoldStart[key];
+
+    const index = Number(key) - 1;
+    if (Number.isNaN(index) || index < 0 || index >= KEY_THROW_MAX) return;
+
+    const targets = getThrowTargets();
+    const target = targets[index];
+    if (!target) return;
+
+    const heldMs = Date.now() - started;
+    attemptThrow(target, heldMs >= LOB_HOLD_MS);
+}
+
+window.addEventListener('keydown', e => {
+    if (e.repeat) return;
+    if (e.key >= '1' && e.key <= String(KEY_THROW_MAX)) {
+        handleThrowKeyDown(e.key);
+    }
+});
+
+window.addEventListener('keyup', e => {
+    if (e.key >= '1' && e.key <= String(KEY_THROW_MAX)) {
+        handleThrowKeyUp(e.key);
+    }
+});
