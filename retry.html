@@ -87,6 +87,14 @@
 			padding: 20px;
 			box-sizing: border-box;
 		}
+		#hudButtons {
+			position: absolute;
+			right: 16px;
+			bottom: 16px;
+			display: flex;
+			gap: 10px;
+			pointer-events: auto;
+		}
 		h1 {
 			margin: 0;
 			text-shadow: 2px 2px black;
@@ -140,12 +148,32 @@
 				<h1>POCKET BOWL</h1>
 				<div id="timer">PREP: 5</div>
 			</div>
-			<div style="text-align:center;">
+			<div id="hudButtons">
 				<button id="snapBtn" tabindex="-1">SNAP BALL</button>
+				<button id="pauseBtn" tabindex="-1">PAUSE</button>
+				<button id="resetBtn" tabindex="-1">RESET</button>
 			</div>
 		</div>
 	</div>
 </div>
+
+<!-- HUD Button Logic (Step 1 only) -->
+<script>
+	const pauseBtn = document.getElementById("pauseBtn");
+	const resetBtn = document.getElementById("resetBtn");
+	const timerLabel = document.getElementById("timer");
+	let paused = false;
+
+	pauseBtn.addEventListener("click", () => {
+		paused = !paused;
+		pauseBtn.textContent = paused ? "RESUME" : "PAUSE";
+		timerLabel.textContent = paused ? "PAUSED" : "PREP: 5";
+	});
+
+	resetBtn.addEventListener("click", () => {
+		window.location.reload();
+	});
+</script>
 
 </body>
 </html>
