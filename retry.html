@@ -662,6 +662,16 @@
 		}
 	}
 
+	function checkTouchdown() {
+		if (!state.gameActive || state.isPaused) return;
+		if (!ballCarrier || ballCarrier.team !== "offense") return;
+		if (ballCarrier.y <= FIELD_TOP_Y) {
+			state.gameActive = false;
+			const timer = document.getElementById("timer");
+			if (timer) timer.textContent = "TOUCHDOWN!";
+		}
+	}
+
 	function lerp(a, b, t) {
 		return a + (b - a) * t;
 	}
@@ -875,6 +885,7 @@
 		updateReceiverList();
 		advanceBallFlight();
 		moveOffense(deltaSeconds);
+		checkTouchdown();
 		resolveCollisions();
 		drawField();
 		drawRoutes();
