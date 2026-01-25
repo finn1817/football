@@ -143,22 +143,6 @@
 			gap: 10px;
 			margin-top: 12px;
 		}
-		.optionButtons {
-			display: flex;
-			gap: 6px;
-			flex-wrap: wrap;
-		}
-		.optionButtons button {
-			background: #1e1e1e;
-			color: white;
-			border: 1px solid #2c2c2c;
-			font-size: 14px;
-			padding: 6px 10px;
-		}
-		.optionButtons button.active {
-			background: orange;
-			color: #0b0b0b;
-		}
 		#savePlayBtn {
 			background: #1e1e1e;
 			color: white;
@@ -236,17 +220,6 @@
 				<input id="yardLineInput" type="number" min="0" max="100" value="25" />
 			</div>
 			<div class="settingsRow">
-				<label>Add players to each team</label>
-				<div id="extraPlayersGroup" class="optionButtons">
-					<button type="button" data-count="0">0</button>
-					<button type="button" data-count="1">1</button>
-					<button type="button" data-count="2">2</button>
-					<button type="button" data-count="3">3</button>
-					<button type="button" data-count="4">4</button>
-				</div>
-				<div class="hint">Adds a lineman on offense and defense for each level.</div>
-			</div>
-			<div class="settingsRow">
 				<label for="playNameInput">Name your play</label>
 				<input id="playNameInput" type="text" placeholder="My Play" />
 			</div>
@@ -269,7 +242,6 @@
 	const saveSettingsBtn = document.getElementById("saveSettingsBtn");
 	const savePlayBtn = document.getElementById("savePlayBtn");
 	const timerLabel = document.getElementById("timer");
-	const extraPlayersGroup = document.getElementById("extraPlayersGroup");
 	let paused = false;
 	window.retryState = window.retryState ?? {
 		prepPhase: true,
@@ -283,7 +255,6 @@
 	} else {
 		localStorage.setItem("retry-yard-line", String(yardLineInput.value));
 	}
-	const storedExtraPlayers = Number(localStorage.getItem("retry-extra-players") ?? "0");
 
 	pauseBtn.addEventListener("click", () => {
 		paused = !paused;
@@ -329,33 +300,6 @@
 		}
 	});
 
-	function updateExtraPlayersButtons(value) {
-		if (!extraPlayersGroup) return;
-		[...extraPlayersGroup.querySelectorAll("button")].forEach(btn => {
-			const count = Number(btn.dataset.count ?? "0");
-			btn.classList.toggle("active", count === value);
-		});
-	}
-
-	function setExtraPlayers(value) {
-		const clamped = Math.max(0, Math.min(4, value));
-		localStorage.setItem("retry-extra-players", String(clamped));
-		updateExtraPlayersButtons(clamped);
-		if (typeof window.setExtraPlayersCount === "function") {
-			window.setExtraPlayersCount(clamped);
-		}
-	}
-
-	if (extraPlayersGroup) {
-		updateExtraPlayersButtons(storedExtraPlayers);
-		extraPlayersGroup.addEventListener("click", event => {
-			const target = event.target.closest("button");
-			if (!target) return;
-			const count = Number(target.dataset.count ?? "0");
-			if (Number.isNaN(count)) return;
-			setExtraPlayers(count);
-		});
-	}
 
 	savePlayBtn.addEventListener("click", () => {
 		const playName = playNameInput.value.trim();
@@ -438,14 +382,13 @@
 	};
 	const SPEED_MULTIPLIER = 1.15; // edit this number to tweak overall speed! - master number 
 
-	function buildRoster(extraPlayers) {
+	function buildRoster() {
 		let nextId = 1;
 		const players = [];
-		const extraCount = Math.max(0, Math.min(4, extraPlayers));
 		const baseLineCount = 5;
-		const lineCount = baseLineCount + extraCount;
-		const lineLeft = 170 - (extraCount * 7);
-		const lineRight = 370 + (extraCount * 7);
+		const lineCount = baseLineCount;
+		const lineLeft = 170;
+		const lineRight = 370;
 		const teInset = 35;
 		const wrInset = 80;
 		const clampX = (value) => Math.max(40, Math.min(500, value));
@@ -537,21 +480,14 @@
 		return yardLineToY(stored);
 	}
 
-	function initializeRoster(extraPlayers) {
-		roster = buildRoster(extraPlayers);
+	function initializeRoster() {
+		roster = buildRoster();
 		setFormationOffsets();
 		applyFormationToLine(getLineOfScrimmageY());
 		applySpeeds();
 	}
 
-	const initialExtraPlayers = Number(localStorage.getItem("retry-extra-players") ?? "0");
-	initializeRoster(initialExtraPlayers);
-	window.setExtraPlayersCount = (count) => {
-		initializeRoster(count);
-		if (typeof window.onRosterChanged === "function") {
-			window.onRosterChanged();
-		}
-	};
+	initializeRoster();
 
 	console.log("[Step 2] Roster initialized:", roster);
 </script>
