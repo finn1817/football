@@ -511,6 +511,7 @@
 	const THROW_KEYS_MAX = 5;
 	const keyHoldStart = {};
 	const collisionDistance = 30;
+	const QB_LATERAL_KEY = "6";
 
 	window.onRosterChanged = () => {
 		selectedPlayer = null;
@@ -586,6 +587,35 @@
 		if (!ballCarrier) return false;
 		const losY = getLineOfScrimmageY();
 		return ballCarrier.y >= (losY - 2);
+	}
+
+	function attemptThrowToQB(isLob) {
+		if (!state.gameActive || state.isPaused) return;
+		if (!ballCarrier || ballCarrier.team !== "offense") return;
+		const qb = roster.find(player => player.role === "QB");
+		if (!qb || qb === ballCarrier) return;
+		if (qb.y >= ballCarrier.y) return;
+		if (ballFlight?.active) return;
+
+		const start = { x: ballCarrier.x, y: ballCarrier.y };
+		const end = { x: qb.x, y: qb.y };
+		ballCarrier.hasBall = false;
+
+		ballFlight = {
+			active: true,
+			lob: isLob,
+			startX: start.x,
+			startY: start.y,
+			x: start.x,
+			y: start.y,
+			target: qb,
+			interceptTarget: null,
+			progress: 0,
+			speed: isLob ? 0.012 : 0.03,
+			arcHeight: isLob ? 120 : 0
+		};
+
+		ballCarrier = null;
 	}
 
 	function getInterceptorOnLine(start, end) {
@@ -710,6 +740,11 @@
 		if (event.key >= "1" && event.key <= String(THROW_KEYS_MAX)) {
 			event.preventDefault();
 			handleThrowKeyDown(event.key);
+			return;
+		}
+		if (event.key === QB_LATERAL_KEY) {
+			event.preventDefault();
+			handleThrowKeyDown(event.key);
 		}
 	});
 
@@ -717,6 +752,15 @@
 		if (event.key >= "1" && event.key <= String(THROW_KEYS_MAX)) {
 			event.preventDefault();
 			handleThrowKeyUp(event.key);
+			return;
+		}
+		if (event.key === QB_LATERAL_KEY) {
+			event.preventDefault();
+			const started = keyHoldStart[event.key];
+			if (!started) return;
+			delete keyHoldStart[event.key];
+			const heldMs = Date.now() - started;
+			attemptThrowToQB(heldMs >= LOB_HOLD_MS);
 		}
 	});
 
