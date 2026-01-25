@@ -148,6 +148,45 @@
 			color: white;
 			border: 1px solid #2c2c2c;
 		}
+		#nextPlayBtn {
+			display: none;
+			background: #1e1e1e;
+			color: white;
+			border: 1px solid #2c2c2c;
+		}
+		#nextPlayBtn.active {
+			display: block;
+		}
+		#leaderboardPanel {
+			display: flex;
+			flex-direction: column;
+			gap: 8px;
+		}
+		#leaderboardList {
+			list-style: none;
+			margin: 0;
+			padding: 0;
+			max-height: 200px;
+			overflow-y: auto;
+		}
+		#leaderboardList li {
+			font-size: 12px;
+			padding: 4px 0;
+			border-bottom: 1px solid #2c2c2c;
+		}
+		#scoreNameInput {
+			padding: 8px;
+			border-radius: 4px;
+			border: 1px solid #2c2c2c;
+			background: #1a1a1a;
+			color: white;
+			font-family: monospace;
+		}
+		#submitScoreBtn {
+			background: #1e1e1e;
+			color: white;
+			border: 1px solid #2c2c2c;
+		}
 		h1 {
 			margin: 0;
 			text-shadow: 2px 2px black;
@@ -211,6 +250,7 @@
 			<button id="snapBtn" tabindex="-1">SNAP BALL</button>
 			<button id="pauseBtn" tabindex="-1">PAUSE</button>
 			<button id="resetBtn" tabindex="-1">RESET</button>
+			<button id="nextPlayBtn" tabindex="-1">NEXT PLAY</button>
 			<button id="settingsBtn" tabindex="-1">GAME SETTINGS</button>
 		</div>
 		<div id="downPanel" class="section">
@@ -218,6 +258,14 @@
 			<div id="downLabel">Down: 1</div>
 			<div id="ytgLabel">Yards to Go: 10</div>
 			<div id="ballLabel">Ball: 25</div>
+			<div id="scoreLabel">Score: 0</div>
+		</div>
+		<div id="leaderboardPanel" class="section">
+			<div><strong>LEADERBOARD</strong></div>
+			<ul id="leaderboardList"></ul>
+			<input id="scoreNameInput" type="text" placeholder="Your name" maxlength="16" />
+			<button id="submitScoreBtn" type="button">SUBMIT SCORE</button>
+			<div class="hint">Top 10 by score.</div>
 		</div>
 		<div id="settingsModal">
 			<div><strong>Settings</strong></div>
@@ -251,6 +299,10 @@
 	const downLabel = document.getElementById("downLabel");
 	const ytgLabel = document.getElementById("ytgLabel");
 	const ballLabel = document.getElementById("ballLabel");
+	const scoreLabel = document.getElementById("scoreLabel");
+	const nextPlayBtn = document.getElementById("nextPlayBtn");
+	const scoreNameInput = document.getElementById("scoreNameInput");
+	const submitScoreBtn = document.getElementById("submitScoreBtn");
 	let paused = false;
 	window.retryState = window.retryState ?? {
 		prepPhase: true,
@@ -268,7 +320,12 @@
 		down: 1,
 		lineToGainY: null,
 		ballSpotY: null,
-		playEnded: false
+		playEnded: false,
+		gameOver: false
+	};
+	window.gameStats = window.gameStats ?? {
+		score: 0,
+		touchdowns: 0
 	};
 	window.updateDownsPanel = () => {
 		if (!downLabel || !ytgLabel || !ballLabel) return;
@@ -277,7 +334,18 @@
 		downLabel.textContent = `Down: ${window.downsState.down}`;
 		ytgLabel.textContent = `Yards to Go: ${ytg}`;
 		ballLabel.textContent = `Ball: ${Math.round(yToYardLine(lineY))}`;
+		if (scoreLabel) scoreLabel.textContent = `Score: ${window.gameStats.score}`;
 	};
+
+	function setNextPlayVisible(visible) {
+		if (!nextPlayBtn) return;
+		nextPlayBtn.classList.toggle("active", visible);
+	}
+
+	function setSubmitEnabled(enabled) {
+		if (submitScoreBtn) submitScoreBtn.disabled = !enabled;
+		if (scoreNameInput) scoreNameInput.disabled = !enabled;
+	}
 
 	pauseBtn.addEventListener("click", () => {
 		paused = !paused;
@@ -297,16 +365,39 @@
 	if (snapBtn) {
 		snapBtn.addEventListener("click", () => {
 			if (window.retryState.isPaused) return;
+			if (window.downsState.gameOver) return;
 			window.retryState.prepPhase = false;
 			window.retryState.gameActive = true;
 			timerLabel.textContent = "GO!";
 			window.downsState.playEnded = false;
+			setNextPlayVisible(false);
 			const losY = getLineOfScrimmageY();
 			if (window.downsState.lineToGainY === null || window.downsState.ballSpotY === null) {
 				window.downsState.ballSpotY = losY;
 				window.downsState.lineToGainY = losY - (10 * pixelsPerYard);
 			}
 			window.updateDownsPanel();
+			if (typeof window.resetFrameTime === "function") {
+				window.resetFrameTime();
+			}
+		});
+	}
+
+	if (nextPlayBtn) {
+		nextPlayBtn.addEventListener("click", () => {
+			if (window.downsState.gameOver) return;
+			const spotY = window.downsState.ballSpotY ?? getLineOfScrimmageY();
+			const yardLine = Math.round(yToYardLine(spotY));
+			localStorage.setItem("retry-yard-line", String(yardLine));
+			yardLineInput.value = String(yardLine);
+			applyFormationToLine(yardLineToY(yardLine));
+			roster.forEach(player => player.reset());
+			window.retryState.prepPhase = true;
+			window.retryState.gameActive = false;
+			window.retryState.isRouting = false;
+			window.downsState.playEnded = false;
+			setNextPlayVisible(false);
+			if (timerLabel) timerLabel.textContent = "PREP: 5";
 			if (typeof window.resetFrameTime === "function") {
 				window.resetFrameTime();
 			}
@@ -352,6 +443,97 @@
 		localStorage.setItem("retry-last-play", playName);
 		playNameInput.value = "";
 	});
+</script>
+
+<script type="module">
+	import { initializeApp } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-app.js";
+	import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-analytics.js";
+	import { getFirestore, collection, addDoc, serverTimestamp, query, orderBy, limit, getDocs } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-firestore.js";
+
+	const firebaseConfig = {
+		apiKey: "AIzaSyCrMtnY0hXlZwpGAib2MmiOmyHRUk_hDc4",
+		authDomain: "file-transfer-c98a2.firebaseapp.com",
+		projectId: "file-transfer-c98a2",
+		storageBucket: "file-transfer-c98a2.firebasestorage.app",
+		messagingSenderId: "945533109103",
+		appId: "1:945533109103:web:7f98391abdab148af9de9a",
+		measurementId: "G-P2YXP42K48"
+	};
+
+	const app = initializeApp(firebaseConfig);
+	try {
+		getAnalytics(app);
+	} catch (error) {
+		console.warn("Analytics unavailable:", error);
+	}
+
+	const db = getFirestore(app);
+	const leaderboardList = document.getElementById("leaderboardList");
+	const scoreNameInput = document.getElementById("scoreNameInput");
+	const submitScoreBtn = document.getElementById("submitScoreBtn");
+
+	async function refreshLeaderboard() {
+		if (!leaderboardList) return;
+		leaderboardList.innerHTML = "<li>Loading...</li>";
+		try {
+			const leaderboardQuery = query(
+				collection(db, "leaderboard"),
+				orderBy("score", "desc"),
+				orderBy("createdAt", "asc"),
+				limit(10)
+			);
+			const snapshot = await getDocs(leaderboardQuery);
+			leaderboardList.innerHTML = "";
+			if (snapshot.empty) {
+				leaderboardList.innerHTML = "<li>No scores yet.</li>";
+				return;
+			}
+			let rank = 1;
+			snapshot.forEach(doc => {
+				const data = doc.data();
+				const name = String(data.name ?? "Anonymous").slice(0, 16);
+				const score = Number(data.score ?? 0);
+				const item = document.createElement("li");
+				item.textContent = `${rank}. ${name} — ${score}`;
+				leaderboardList.appendChild(item);
+				rank += 1;
+			});
+		} catch (error) {
+			leaderboardList.innerHTML = "<li>Unable to load scores.</li>";
+			console.error(error);
+		}
+	}
+
+	async function submitScore() {
+		if (!submitScoreBtn || submitScoreBtn.disabled) return;
+		const name = scoreNameInput?.value.trim() ?? "";
+		if (!name) return;
+		const score = Number(window.gameStats?.score ?? 0);
+		try {
+			submitScoreBtn.disabled = true;
+			await addDoc(collection(db, "leaderboard"), {
+				name: name.slice(0, 16),
+				score,
+				createdAt: serverTimestamp()
+			});
+			localStorage.setItem("retry-player-name", name.slice(0, 16));
+			await refreshLeaderboard();
+		} catch (error) {
+			console.error(error);
+		} finally {
+			submitScoreBtn.disabled = false;
+		}
+	}
+
+	if (scoreNameInput) {
+		const storedName = localStorage.getItem("retry-player-name");
+		if (storedName) scoreNameInput.value = storedName;
+	}
+	if (submitScoreBtn) {
+		submitScoreBtn.addEventListener("click", submitScore);
+	}
+
+	refreshLeaderboard();
 </script>
 
 <!-- Core Data Models (Step 2) -->
@@ -529,6 +711,7 @@
 	if (typeof window.updateDownsPanel === "function") {
 		window.updateDownsPanel();
 	}
+	setSubmitEnabled(false);
 
 	console.log("[Step 2] Roster initialized:", roster);
 </script>
@@ -723,10 +906,13 @@
 			window.downsState.playEnded = true;
 			const timer = document.getElementById("timer");
 			if (timer) timer.textContent = "TOUCHDOWN!";
+			window.gameStats.touchdowns += 1;
+			window.gameStats.score += 7;
 			window.downsState.down = 1;
 			window.downsState.ballSpotY = getLineOfScrimmageY();
 			window.downsState.lineToGainY = window.downsState.ballSpotY - (10 * pixelsPerYard);
 			window.updateDownsPanel();
+			setNextPlayVisible(true);
 		}
 	}
 
@@ -900,15 +1086,21 @@
 				window.downsState.down = 1;
 				window.downsState.lineToGainY = window.downsState.ballSpotY - (10 * pixelsPerYard);
 			} else {
-				window.downsState.down = Math.min(4, window.downsState.down + 1);
-				if (window.downsState.down === 4 && window.downsState.ballSpotY > window.downsState.lineToGainY) {
-					window.downsState.down = 1;
-					window.downsState.lineToGainY = window.downsState.ballSpotY - (10 * pixelsPerYard);
+				if (window.downsState.down >= 4) {
+					window.downsState.gameOver = true;
+				} else {
+					window.downsState.down += 1;
 				}
 			}
 			const timer = document.getElementById("timer");
-			if (timer) timer.textContent = "TACKLED";
+			if (timer) timer.textContent = window.downsState.gameOver ? "GAME OVER" : "TACKLED";
 			window.updateDownsPanel();
+			if (window.downsState.gameOver) {
+				setNextPlayVisible(false);
+				setSubmitEnabled(true);
+			} else {
+				setNextPlayVisible(true);
+			}
 		}
 	}
 
