@@ -243,16 +243,45 @@
 	const savePlayBtn = document.getElementById("savePlayBtn");
 	const timerLabel = document.getElementById("timer");
 	let paused = false;
+	window.retryState = window.retryState ?? {
+		prepPhase: true,
+		gameActive: false,
+		isRouting: false,
+		isPaused: false
+	};
+	const storedYard = localStorage.getItem("retry-yard-line");
+	if (storedYard !== null) {
+		yardLineInput.value = storedYard;
+	} else {
+		localStorage.setItem("retry-yard-line", String(yardLineInput.value));
+	}
 
 	pauseBtn.addEventListener("click", () => {
 		paused = !paused;
 		pauseBtn.textContent = paused ? "RESUME" : "PAUSE";
 		timerLabel.textContent = paused ? "PAUSED" : "PREP: 5";
+		window.retryState.isPaused = paused;
+		if (typeof window.resetFrameTime === "function") {
+			window.resetFrameTime();
+		}
 	});
 
 	resetBtn.addEventListener("click", () => {
 		window.location.reload();
 	});
+
+	const snapBtn = document.getElementById("snapBtn");
+	if (snapBtn) {
+		snapBtn.addEventListener("click", () => {
+			if (window.retryState.isPaused) return;
+			window.retryState.prepPhase = false;
+			window.retryState.gameActive = true;
+			timerLabel.textContent = "GO!";
+			if (typeof window.resetFrameTime === "function") {
+				window.resetFrameTime();
+			}
+		});
+	}
 
 	settingsBtn.addEventListener("click", () => {
 		settingsModal.classList.toggle("active");
@@ -267,6 +296,7 @@
 			if (typeof applyFormationToLine === "function") {
 				applyFormationToLine(yardLineToY(clamped));
 			}
+			snapLocked = false;
 		}
 	});
 
@@ -425,21 +455,24 @@
 <script>
 	const canvas = document.getElementById("gameCanvas");
 	const ctx = canvas.getContext("2d");
-	let prepPhase = true;
-	let gameActive = false;
-	let isRouting = false;
+	const state = window.retryState ?? (window.retryState = {
+		prepPhase: true,
+		gameActive: false,
+		isRouting: false,
+		isPaused: false
+	});
 	let selectedPlayer = null;
 	let lastFrameTime = null;
 	const pixelsPerYard = FIELD_PLAY_HEIGHT / YARDS_PER_FIELD;
 
 	function handleInput(type, x, y) {
-		if (!prepPhase && !gameActive) return;
+		if (!state.prepPhase && !state.gameActive) return;
 		if (type === "start") {
 			roster.forEach(player => {
 				if (player.team !== "offense") return;
 				const dist = Math.hypot(player.x - x, player.y - y);
 				if (dist < 30) {
-					isRouting = true;
+					state.isRouting = true;
 					selectedPlayer = player;
 					player.path = [];
 					player.path.push({ x: player.x, y: player.y });
@@ -451,7 +484,7 @@
 			selectedPlayer.path.push({ x, y });
 		} else if (type === "end") {
 			selectedPlayer = null;
-			isRouting = false;
+			state.isRouting = false;
 		}
 	}
 
@@ -470,13 +503,9 @@
 	canvas.addEventListener("touchmove", e => getPos(e, "move"));
 	canvas.addEventListener("touchend", e => getPos(e, "end"));
 
-	const snapBtn = document.getElementById("snapBtn");
-	if (snapBtn) {
-		snapBtn.addEventListener("click", () => {
-			prepPhase = false;
-			gameActive = true;
-		});
-	}
+	window.resetFrameTime = () => {
+		lastFrameTime = null;
+	};
 
 	function drawField() {
 		ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -556,7 +585,7 @@
 	}
 
 	function moveOffense(deltaSeconds) {
-		if (!gameActive || isRouting) return;
+		if (!state.gameActive || state.isRouting || state.isPaused) return;
 		roster.forEach(player => {
 			if (player.team !== "offense") return;
 			if (!player.path || player.path.length < 2) return;
