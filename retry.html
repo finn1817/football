@@ -408,6 +408,42 @@
 <script>
 	const canvas = document.getElementById("gameCanvas");
 	const ctx = canvas.getContext("2d");
+	let prepPhase = true;
+	let selectedPlayer = null;
+
+	function handleInput(type, x, y) {
+		if (!prepPhase) return;
+		if (type === "start") {
+			roster.forEach(player => {
+				if (player.team !== "offense") return;
+				const dist = Math.hypot(player.x - x, player.y - y);
+				if (dist < 30) {
+					selectedPlayer = player;
+					player.path = [];
+					player.path.push({ x, y });
+				}
+			});
+		} else if (type === "move" && selectedPlayer) {
+			selectedPlayer.path.push({ x, y });
+		} else if (type === "end") {
+			selectedPlayer = null;
+		}
+	}
+
+	function getPos(event, type) {
+		const rect = canvas.getBoundingClientRect();
+		const point = event.touches ? event.touches[0] : event;
+		const x = point.clientX - rect.left;
+		const y = point.clientY - rect.top;
+		handleInput(type, x, y);
+	}
+
+	canvas.addEventListener("mousedown", e => getPos(e, "start"));
+	canvas.addEventListener("mousemove", e => getPos(e, "move"));
+	canvas.addEventListener("mouseup", e => getPos(e, "end"));
+	canvas.addEventListener("touchstart", e => getPos(e, "start"));
+	canvas.addEventListener("touchmove", e => getPos(e, "move"));
+	canvas.addEventListener("touchend", e => getPos(e, "end"));
 
 	function drawField() {
 		ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -472,8 +508,23 @@
 		});
 	}
 
+	function drawRoutes() {
+		roster.forEach(player => {
+			if (player.team !== "offense" || player.path.length < 2) return;
+			ctx.beginPath();
+			ctx.strokeStyle = "yellow";
+			ctx.lineWidth = 3;
+			ctx.moveTo(player.path[0].x, player.path[0].y);
+			player.path.forEach(point => {
+				ctx.lineTo(point.x, point.y);
+			});
+			ctx.stroke();
+		});
+	}
+
 	function render() {
 		drawField();
+		drawRoutes();
 		drawPlayers();
 		requestAnimationFrame(render);
 	}
