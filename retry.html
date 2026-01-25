@@ -1139,6 +1139,14 @@
 		ctx.lineTo(canvas.width, losY);
 		ctx.stroke();
 		ctx.setLineDash([]);
+
+		const firstDownY = losY - (10 * pixelsPerYard);
+		ctx.strokeStyle = "#ffd54a";
+		ctx.lineWidth = 2;
+		ctx.beginPath();
+		ctx.moveTo(0, firstDownY);
+		ctx.lineTo(canvas.width, firstDownY);
+		ctx.stroke();
 	}
 
 	function drawPlayers() {
