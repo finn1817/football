@@ -319,7 +319,7 @@
 			this.role = role; // "QB", "WR", "LB"
 			this.path = [];
 			this.pathIndex = 0;
-			this.speed = 3.0;
+			this.speedYps = 6.7; // yards per second
 			this.hasBall = (role === "QB");
 			this.isDead = false;
 		}
@@ -354,6 +354,23 @@
 		new Player(14, 220, 700, "defense", "DL"),
 		new Player(15, 320, 700, "defense", "DL")
 	];
+
+	const SPEED_YPS = {
+		QB: 5.8,
+		RB: 6.4,
+		WR: 6.7,
+		SL: 6.6,
+		TE: 6.1,
+		MLB: 6.0,
+		LB: 6.1,
+		DL: 5.4,
+		CB: 6.6,
+		S: 6.4
+	};
+
+	roster.forEach(player => {
+		player.speedYps = SPEED_YPS[player.role] ?? 6.0;
+	});
 
 	function yardLineToY(yardLine) {
 		const clamped = Math.max(0, Math.min(100, yardLine));
@@ -409,24 +426,32 @@
 	const canvas = document.getElementById("gameCanvas");
 	const ctx = canvas.getContext("2d");
 	let prepPhase = true;
+	let gameActive = false;
+	let isRouting = false;
 	let selectedPlayer = null;
+	let lastFrameTime = null;
+	const pixelsPerYard = FIELD_PLAY_HEIGHT / YARDS_PER_FIELD;
 
 	function handleInput(type, x, y) {
-		if (!prepPhase) return;
+		if (!prepPhase && !gameActive) return;
 		if (type === "start") {
 			roster.forEach(player => {
 				if (player.team !== "offense") return;
 				const dist = Math.hypot(player.x - x, player.y - y);
 				if (dist < 30) {
+					isRouting = true;
 					selectedPlayer = player;
 					player.path = [];
+					player.path.push({ x: player.x, y: player.y });
 					player.path.push({ x, y });
+					player.pathIndex = 0;
 				}
 			});
 		} else if (type === "move" && selectedPlayer) {
 			selectedPlayer.path.push({ x, y });
 		} else if (type === "end") {
 			selectedPlayer = null;
+			isRouting = false;
 		}
 	}
 
@@ -444,6 +469,14 @@
 	canvas.addEventListener("touchstart", e => getPos(e, "start"));
 	canvas.addEventListener("touchmove", e => getPos(e, "move"));
 	canvas.addEventListener("touchend", e => getPos(e, "end"));
+
+	const snapBtn = document.getElementById("snapBtn");
+	if (snapBtn) {
+		snapBtn.addEventListener("click", () => {
+			prepPhase = false;
+			gameActive = true;
+		});
+	}
 
 	function drawField() {
 		ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -522,7 +555,35 @@
 		});
 	}
 
-	function render() {
+	function moveOffense(deltaSeconds) {
+		if (!gameActive || isRouting) return;
+		roster.forEach(player => {
+			if (player.team !== "offense") return;
+			if (!player.path || player.path.length < 2) return;
+			const target = player.path[player.pathIndex];
+			const dx = target.x - player.x;
+			const dy = target.y - player.y;
+			const dist = Math.hypot(dx, dy);
+			if (dist === 0) return;
+			const speedPx = player.speedYps * pixelsPerYard;
+			const step = speedPx * deltaSeconds;
+			if (dist <= step) {
+				player.x = target.x;
+				player.y = target.y;
+				player.pathIndex = Math.min(player.pathIndex + 1, player.path.length - 1);
+			} else {
+				player.x += (dx / dist) * step;
+				player.y += (dy / dist) * step;
+			}
+		});
+	}
+
+	function render(timestamp) {
+		if (!lastFrameTime) lastFrameTime = timestamp;
+		const deltaSeconds = Math.min(0.05, (timestamp - lastFrameTime) / 1000);
+		lastFrameTime = timestamp;
+
+		moveOffense(deltaSeconds);
 		drawField();
 		drawRoutes();
 		drawPlayers();
