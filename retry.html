@@ -973,6 +973,7 @@
 			for (let j = i + 1; j < roster.length; j += 1) {
 				const playerA = roster[i];
 				const playerB = roster[j];
+				const involvesBallCarrier = ballCarrier && (playerA === ballCarrier || playerB === ballCarrier);
 				const dx = playerB.x - playerA.x;
 				const dy = playerB.y - playerA.y;
 				const dist = Math.hypot(dx, dy);
@@ -994,6 +995,9 @@
 						playerB.y += ny * overlap;
 					}
 				} else {
+					if (involvesBallCarrier) {
+						continue;
+					}
 					playerA.x -= nx * overlap;
 					playerA.y -= ny * overlap;
 					playerB.x += nx * overlap;
