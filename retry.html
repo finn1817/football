@@ -181,8 +181,7 @@
 		</div>
 		<div class="section">
 			<div><strong>Throw</strong></div>
-			<div>Press 1–5 to pass. Hold to lob.</div>
-			<div>Press 6 to lateral back to QB. Hold to lob.</div>
+			<div>Press 1–6 to pass. Hold to lob.</div>
 			<ul id="receiverList"></ul>
 			<div class="hint">Numbers map to the labeled receivers on the field.</div>
 		</div>
@@ -509,10 +508,9 @@
 	let ballCarrier = roster.find(player => player.role === "QB") ?? roster[0];
 	let ballFlight = null;
 	const LOB_HOLD_MS = 400;
-	const THROW_KEYS_MAX = 5;
+	const THROW_KEYS_MAX = 6;
 	const keyHoldStart = {};
 	const collisionDistance = 30;
-	const QB_LATERAL_KEY = "6";
 
 	window.onRosterChanged = () => {
 		selectedPlayer = null;
@@ -575,11 +573,9 @@
 			if (roleDiff !== 0) return roleDiff;
 			return a.x - b.x;
 		});
-		if (ballCarrier && ballCarrier.role !== "QB") {
-			const qb = roster.find(player => player.role === "QB");
-			if (qb && qb !== ballCarrier) {
-				targets.push(qb);
-			}
+		const qb = roster.find(player => player.role === "QB");
+		if (ballCarrier && ballCarrier.role !== "QB" && qb && qb !== ballCarrier) {
+			targets.push(qb);
 		}
 		return targets;
 	}
@@ -588,35 +584,6 @@
 		if (!ballCarrier) return false;
 		const losY = getLineOfScrimmageY();
 		return ballCarrier.y >= (losY - 2);
-	}
-
-	function attemptThrowToQB(isLob) {
-		if (!state.gameActive || state.isPaused) return;
-		if (!ballCarrier || ballCarrier.team !== "offense") return;
-		const qb = roster.find(player => player.role === "QB");
-		if (!qb || qb === ballCarrier) return;
-		if (qb.y <= ballCarrier.y) return;
-		if (ballFlight?.active) return;
-
-		const start = { x: ballCarrier.x, y: ballCarrier.y };
-		const end = { x: qb.x, y: qb.y };
-		ballCarrier.hasBall = false;
-
-		ballFlight = {
-			active: true,
-			lob: isLob,
-			startX: start.x,
-			startY: start.y,
-			x: start.x,
-			y: start.y,
-			target: qb,
-			interceptTarget: null,
-			progress: 0,
-			speed: isLob ? 0.012 : 0.03,
-			arcHeight: isLob ? 120 : 0
-		};
-
-		ballCarrier = null;
 	}
 
 	function getInterceptorOnLine(start, end) {
@@ -652,8 +619,9 @@
 		if (!ballCarrier || ballCarrier.team !== "offense") return;
 		if (!targetPlayer || targetPlayer.team !== "offense") return;
 		if (ballFlight?.active) return;
-		if (!canThrowFromPosition()) return;
-		if (targetPlayer.role === "QB" && targetPlayer.y < (getLineOfScrimmageY() - 2)) return;
+		const isBackward = targetPlayer.y > (ballCarrier.y + 2);
+		if (!isBackward && !canThrowFromPosition()) return;
+		if (!isBackward && targetPlayer.role === "QB" && targetPlayer.y < (getLineOfScrimmageY() - 2)) return;
 
 		const start = { x: ballCarrier.x, y: ballCarrier.y };
 		const end = { x: targetPlayer.x, y: targetPlayer.y };
@@ -741,11 +709,6 @@
 		if (event.key >= "1" && event.key <= String(THROW_KEYS_MAX)) {
 			event.preventDefault();
 			handleThrowKeyDown(event.key);
-			return;
-		}
-		if (event.key === QB_LATERAL_KEY) {
-			event.preventDefault();
-			handleThrowKeyDown(event.key);
 		}
 	});
 
@@ -753,15 +716,6 @@
 		if (event.key >= "1" && event.key <= String(THROW_KEYS_MAX)) {
 			event.preventDefault();
 			handleThrowKeyUp(event.key);
-			return;
-		}
-		if (event.key === QB_LATERAL_KEY) {
-			event.preventDefault();
-			const started = keyHoldStart[event.key];
-			if (!started) return;
-			delete keyHoldStart[event.key];
-			const heldMs = Date.now() - started;
-			attemptThrowToQB(heldMs >= LOB_HOLD_MS);
 		}
 	});
 
@@ -771,7 +725,7 @@
 		const targets = getThrowTargets();
 		list.innerHTML = "";
 		const roleCounts = {};
-		targets.slice(0, 5).forEach((player, index) => {
+		targets.slice(0, THROW_KEYS_MAX).forEach((player, index) => {
 			roleCounts[player.role] = (roleCounts[player.role] ?? 0) + 1;
 			const label = roleCounts[player.role] > 1 ? `${player.role}${roleCounts[player.role]}` : player.role;
 			const item = document.createElement("li");
