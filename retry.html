@@ -415,8 +415,8 @@
 		});
 
 		const defenseLineXs = lineXs.slice();
-		const lbLeftX = clampX(lineLeft + 40);
-		const lbRightX = clampX(lineRight - 40);
+		const lbLeftX = clampX(teLeftX);
+		const lbRightX = clampX(teRightX);
 
 		players.push(new Player(nextId++, 270, 700, "defense", "MLB"));
 		players.push(new Player(nextId++, lbLeftX, 700, "defense", "LB"));
@@ -450,11 +450,11 @@
 			SL: 20,
 			TE: 20,
 			OL: 20,
-			MLB: -50,
-			LB: -50,
-			DL: -50,
-			CB: -130,
-			S: -190
+			DL: -40,
+			LB: -80,
+			MLB: -90,
+			CB: -140,
+			S: -200
 		};
 
 		roster.forEach(player => {
