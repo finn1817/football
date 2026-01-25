@@ -36,8 +36,8 @@ Test: defenders move to ball, tackles end play.
 
 Step 8 — Interception line checks
 Add interception logic for bullets.
-
 Test: bullet picked if defender on line; lob clears.
+
 Step 9 — Polishing + HUD states
 Add “GO/PREP” states, reset, and optional debug text.
 
@@ -45,3 +45,7 @@ Future Vision — Playbook Platform (not yet implemented)
 - Build an NFL-style playbook site where users draw plays, simulate outcomes, and track stats.
 - Allow per-player speed adjustments to model real-time scenarios.
 - Add a structured play library and analytics dashboard.
+
+
+On now
+- Down tracking

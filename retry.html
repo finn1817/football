@@ -213,6 +213,12 @@
 			<button id="resetBtn" tabindex="-1">RESET</button>
 			<button id="settingsBtn" tabindex="-1">GAME SETTINGS</button>
 		</div>
+		<div id="downPanel" class="section">
+			<div><strong>DOWN & DISTANCE</strong></div>
+			<div id="downLabel">Down: 1</div>
+			<div id="ytgLabel">Yards to Go: 10</div>
+			<div id="ballLabel">Ball: 25</div>
+		</div>
 		<div id="settingsModal">
 			<div><strong>Settings</strong></div>
 			<div class="settingsRow">
@@ -242,6 +248,9 @@
 	const saveSettingsBtn = document.getElementById("saveSettingsBtn");
 	const savePlayBtn = document.getElementById("savePlayBtn");
 	const timerLabel = document.getElementById("timer");
+	const downLabel = document.getElementById("downLabel");
+	const ytgLabel = document.getElementById("ytgLabel");
+	const ballLabel = document.getElementById("ballLabel");
 	let paused = false;
 	window.retryState = window.retryState ?? {
 		prepPhase: true,
@@ -255,6 +264,20 @@
 	} else {
 		localStorage.setItem("retry-yard-line", String(yardLineInput.value));
 	}
+	window.downsState = window.downsState ?? {
+		down: 1,
+		lineToGainY: null,
+		ballSpotY: null,
+		playEnded: false
+	};
+	window.updateDownsPanel = () => {
+		if (!downLabel || !ytgLabel || !ballLabel) return;
+		const lineY = window.downsState.ballSpotY ?? getLineOfScrimmageY();
+		const ytg = window.downsState.lineToGainY === null ? 10 : Math.max(0, Math.round((lineY - window.downsState.lineToGainY) / pixelsPerYard));
+		downLabel.textContent = `Down: ${window.downsState.down}`;
+		ytgLabel.textContent = `Yards to Go: ${ytg}`;
+		ballLabel.textContent = `Ball: ${Math.round(yToYardLine(lineY))}`;
+	};
 
 	pauseBtn.addEventListener("click", () => {
 		paused = !paused;
@@ -277,6 +300,13 @@
 			window.retryState.prepPhase = false;
 			window.retryState.gameActive = true;
 			timerLabel.textContent = "GO!";
+			window.downsState.playEnded = false;
+			const losY = getLineOfScrimmageY();
+			if (window.downsState.lineToGainY === null || window.downsState.ballSpotY === null) {
+				window.downsState.ballSpotY = losY;
+				window.downsState.lineToGainY = losY - (10 * pixelsPerYard);
+			}
+			window.updateDownsPanel();
 			if (typeof window.resetFrameTime === "function") {
 				window.resetFrameTime();
 			}
@@ -442,6 +472,12 @@
 		return FIELD_BOTTOM_Y - (percent * FIELD_PLAY_HEIGHT);
 	}
 
+	function yToYardLine(yPos) {
+		const clampedY = Math.max(FIELD_TOP_Y, Math.min(FIELD_BOTTOM_Y, yPos));
+		const percent = (FIELD_BOTTOM_Y - clampedY) / FIELD_PLAY_HEIGHT;
+		return percent * YARDS_PER_FIELD;
+	}
+
 	function setFormationOffsets() {
 		const roleOffsetY = {
 			QB: 70,
@@ -488,6 +524,11 @@
 	}
 
 	initializeRoster();
+	window.downsState.ballSpotY = getLineOfScrimmageY();
+	window.downsState.lineToGainY = window.downsState.ballSpotY - (10 * pixelsPerYard);
+	if (typeof window.updateDownsPanel === "function") {
+		window.updateDownsPanel();
+	}
 
 	console.log("[Step 2] Roster initialized:", roster);
 </script>
@@ -679,8 +720,13 @@
 		if (!ballCarrier || ballCarrier.team !== "offense") return;
 		if (ballCarrier.y <= FIELD_TOP_Y) {
 			state.gameActive = false;
+			window.downsState.playEnded = true;
 			const timer = document.getElementById("timer");
 			if (timer) timer.textContent = "TOUCHDOWN!";
+			window.downsState.down = 1;
+			window.downsState.ballSpotY = getLineOfScrimmageY();
+			window.downsState.lineToGainY = window.downsState.ballSpotY - (10 * pixelsPerYard);
+			window.updateDownsPanel();
 		}
 	}
 
@@ -848,8 +894,21 @@
 		});
 		if (tackled) {
 			state.gameActive = false;
+			window.downsState.playEnded = true;
+			window.downsState.ballSpotY = ballCarrier.y;
+			if (window.downsState.ballSpotY <= window.downsState.lineToGainY) {
+				window.downsState.down = 1;
+				window.downsState.lineToGainY = window.downsState.ballSpotY - (10 * pixelsPerYard);
+			} else {
+				window.downsState.down = Math.min(4, window.downsState.down + 1);
+				if (window.downsState.down === 4 && window.downsState.ballSpotY > window.downsState.lineToGainY) {
+					window.downsState.down = 1;
+					window.downsState.lineToGainY = window.downsState.ballSpotY - (10 * pixelsPerYard);
+				}
+			}
 			const timer = document.getElementById("timer");
 			if (timer) timer.textContent = "TACKLED";
+			window.updateDownsPanel();
 		}
 	}
 
