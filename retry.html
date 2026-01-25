@@ -588,13 +588,20 @@
 		return ballCarrier.y >= (losY - 2);
 	}
 
-	function defenderOnLine(start, end) {
+	function getInterceptorOnLine(start, end) {
 		const threshold = 20;
-		return roster.some(def => {
-			if (def.team !== "defense") return false;
+		let closest = null;
+		let closestDist = Infinity;
+		roster.forEach(def => {
+			if (def.team !== "defense") return;
+			if (def.role === "DL") return;
 			const dist = pointToSegmentDistance(def.x, def.y, start.x, start.y, end.x, end.y);
-			return dist < threshold;
+			if (dist < threshold && dist < closestDist) {
+				closestDist = dist;
+				closest = def;
+			}
 		});
+		return closest;
 	}
 
 	function pointToSegmentDistance(px, py, x1, y1, x2, y2) {
@@ -620,15 +627,7 @@
 		const start = { x: ballCarrier.x, y: ballCarrier.y };
 		const end = { x: targetPlayer.x, y: targetPlayer.y };
 		ballCarrier.hasBall = false;
-
-		if (!isLob && defenderOnLine(start, end)) {
-			state.gameActive = false;
-			ballCarrier = null;
-			ballFlight = null;
-			const timer = document.getElementById("timer");
-			if (timer) timer.textContent = "INTERCEPTED";
-			return;
-		}
+		const interceptor = !isLob ? getInterceptorOnLine(start, end) : null;
 
 		ballFlight = {
 			active: true,
@@ -638,6 +637,7 @@
 			x: start.x,
 			y: start.y,
 			target: targetPlayer,
+			interceptTarget: interceptor,
 			progress: 0,
 			speed: isLob ? 0.012 : 0.03,
 			arcHeight: isLob ? 120 : 0
@@ -650,14 +650,23 @@
 		if (!ballFlight?.active) return;
 		const progress = Math.min(1, ballFlight.progress + ballFlight.speed);
 		ballFlight.progress = progress;
-		const endX = ballFlight.target.x;
-		const endY = ballFlight.target.y;
+		const activeTarget = ballFlight.interceptTarget ?? ballFlight.target;
+		const endX = activeTarget.x;
+		const endY = activeTarget.y;
 		const arcOffset = ballFlight.lob ? Math.sin(Math.PI * progress) * ballFlight.arcHeight : 0;
 		ballFlight.x = lerp(ballFlight.startX, endX, progress);
 		ballFlight.y = lerp(ballFlight.startY, endY, progress) - arcOffset;
 		if (progress >= 1) {
-			ballFlight.target.hasBall = true;
-			ballCarrier = ballFlight.target;
+			if (ballFlight.interceptTarget) {
+				ballFlight.interceptTarget.hasBall = true;
+				ballCarrier = ballFlight.interceptTarget;
+				state.gameActive = false;
+				const timer = document.getElementById("timer");
+				if (timer) timer.textContent = "INTERCEPTED";
+			} else {
+				ballFlight.target.hasBall = true;
+				ballCarrier = ballFlight.target;
+			}
 			ballFlight.active = false;
 		}
 	}
