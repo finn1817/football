@@ -511,6 +511,8 @@
 	const THROW_KEYS_MAX = 6;
 	const keyHoldStart = {};
 	const collisionDistance = 30;
+	const tackleDistance = 22;
+	let defenseAssigned = false;
 
 	window.onRosterChanged = () => {
 		selectedPlayer = null;
@@ -749,6 +751,93 @@
 		});
 	}
 
+	function getOffenseByRole(role) {
+		return roster.filter(player => player.team === "offense" && player.role === role);
+	}
+
+	function getDefenseByRole(role) {
+		return roster.filter(player => player.team === "defense" && player.role === role);
+	}
+
+	function assignDefenseTargets() {
+		const assignments = new Map();
+		const wrs = getOffenseByRole("WR").sort((a, b) => a.x - b.x);
+		const tes = getOffenseByRole("TE").sort((a, b) => a.x - b.x);
+		const rbs = getOffenseByRole("RB").sort((a, b) => a.x - b.x);
+		const cbs = getDefenseByRole("CB").sort((a, b) => a.x - b.x);
+		const lbs = getDefenseByRole("LB").sort((a, b) => a.x - b.x);
+
+		if (cbs[0] && wrs[0]) assignments.set(cbs[0].id, wrs[0].id);
+		if (cbs[1] && wrs[1]) assignments.set(cbs[1].id, wrs[1].id);
+
+		const lbTargets = [...tes, ...rbs].sort((a, b) => a.x - b.x);
+		if (lbs[0] && lbTargets[0]) assignments.set(lbs[0].id, lbTargets[0].id);
+		if (lbs[1] && lbTargets[lbTargets.length - 1]) assignments.set(lbs[1].id, lbTargets[lbTargets.length - 1].id);
+
+		return assignments;
+	}
+
+	function moveDefense(deltaSeconds) {
+		if (!state.gameActive || state.isRouting || state.isPaused) return;
+		if (!defenseAssigned) {
+			defenseAssigned = true;
+		}
+		const assignments = assignDefenseTargets();
+		const losY = getLineOfScrimmageY();
+		const qb = roster.find(player => player.role === "QB" && player.team === "offense");
+		const chaseTarget = ballCarrier ?? ballFlight?.target ?? qb;
+
+		roster.forEach(defender => {
+			if (defender.team !== "defense") return;
+			let target = null;
+			if (defender.role === "CB" || defender.role === "LB") {
+				const assignedId = assignments.get(defender.id);
+				target = roster.find(player => player.id === assignedId) ?? null;
+			}
+			if (defender.role === "MLB") {
+				target = chaseTarget;
+			}
+			if (defender.role === "S") {
+				target = chaseTarget;
+			}
+			if (defender.role === "DL") {
+				target = qb ?? chaseTarget;
+			}
+			if (!target) {
+				target = { x: defender.x, y: losY - 60 };
+			}
+
+			const dx = target.x - defender.x;
+			const dy = target.y - defender.y;
+			const dist = Math.hypot(dx, dy);
+			if (dist === 0) return;
+			const speedPx = defender.speedYps * pixelsPerYard;
+			const step = speedPx * deltaSeconds;
+			if (dist <= step) {
+				defender.x = target.x;
+				defender.y = target.y;
+			} else {
+				defender.x += (dx / dist) * step;
+				defender.y += (dy / dist) * step;
+			}
+		});
+	}
+
+	function checkTackle() {
+		if (!state.gameActive || state.isPaused) return;
+		if (!ballCarrier || ballCarrier.team !== "offense") return;
+		const tackled = roster.some(defender => {
+			if (defender.team !== "defense") return false;
+			const dist = Math.hypot(defender.x - ballCarrier.x, defender.y - ballCarrier.y);
+			return dist <= tackleDistance;
+		});
+		if (tackled) {
+			state.gameActive = false;
+			const timer = document.getElementById("timer");
+			if (timer) timer.textContent = "TACKLED";
+		}
+	}
+
 	function drawField() {
 		ctx.clearRect(0, 0, canvas.width, canvas.height);
 
@@ -893,7 +982,9 @@
 		updateReceiverList();
 		advanceBallFlight();
 		moveOffense(deltaSeconds);
+		moveDefense(deltaSeconds);
 		checkTouchdown();
+		checkTackle();
 		resolveCollisions();
 		drawField();
 		drawRoutes();
