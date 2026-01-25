@@ -362,9 +362,23 @@
 	}
 
 	function setFormationOffsets() {
+		const roleOffsetY = {
+			QB: 60,
+			RB: 110,
+			WR: 0,
+			SL: 0,
+			TE: 0,
+			MLB: -60,
+			LB: -60,
+			DL: -60,
+			CB: -140,
+			S: -200
+		};
+
 		roster.forEach(player => {
 			player.baseX = player.x;
-			player.baseYOffset = player.y - DEFAULT_LINE_OF_SCRIMMAGE_Y;
+			const offset = roleOffsetY[player.role] ?? 0;
+			player.baseYOffset = offset;
 		});
 	}
 
@@ -410,6 +424,15 @@
 		ctx.fillStyle = "rgba(0,0,100,0.2)";
 		ctx.fillRect(0, 0, canvas.width, ENDZONE_HEIGHT);
 		ctx.fillRect(0, canvas.height - ENDZONE_HEIGHT, canvas.width, ENDZONE_HEIGHT);
+
+		ctx.fillStyle = "rgba(255,255,255,0.9)";
+		ctx.font = "12px Arial";
+		ctx.textAlign = "left";
+		for (let yard = 10; yard <= 90; yard += 10) {
+			const label = yard <= 50 ? yard : 100 - yard;
+			const y = yardLineToY(yard);
+			ctx.fillText(String(label), 6, y + 4);
+		}
 
 		const losY = getLineOfScrimmageY();
 		ctx.strokeStyle = LOS_COLOR;
