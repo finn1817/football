@@ -513,6 +513,8 @@
 	const collisionDistance = 30;
 	const tackleDistance = 22;
 	let defenseAssigned = false;
+	const tackleHoldSeconds = 1.0;
+	const tackleContact = new Map();
 
 	window.onRosterChanged = () => {
 		selectedPlayer = null;
@@ -826,10 +828,23 @@
 	function checkTackle() {
 		if (!state.gameActive || state.isPaused) return;
 		if (!ballCarrier || ballCarrier.team !== "offense") return;
+		const now = performance.now();
+		const activeIds = new Set();
 		const tackled = roster.some(defender => {
 			if (defender.team !== "defense") return false;
 			const dist = Math.hypot(defender.x - ballCarrier.x, defender.y - ballCarrier.y);
-			return dist <= tackleDistance;
+			if (dist <= tackleDistance) {
+				activeIds.add(defender.id);
+				const startedAt = tackleContact.get(defender.id) ?? now;
+				tackleContact.set(defender.id, startedAt);
+				return (now - startedAt) / 1000 >= tackleHoldSeconds;
+			}
+			return false;
+		});
+		tackleContact.forEach((_, id) => {
+			if (!activeIds.has(id)) {
+				tackleContact.delete(id);
+			}
 		});
 		if (tackled) {
 			state.gameActive = false;
@@ -954,24 +969,38 @@
 	}
 
 	function resolveCollisions() {
-		roster.forEach(playerA => {
-			roster.forEach(playerB => {
-				if (playerA === playerB) return;
-				if (playerA.team === playerB.team) return;
+		for (let i = 0; i < roster.length; i += 1) {
+			for (let j = i + 1; j < roster.length; j += 1) {
+				const playerA = roster[i];
+				const playerB = roster[j];
 				const dx = playerB.x - playerA.x;
 				const dy = playerB.y - playerA.y;
 				const dist = Math.hypot(dx, dy);
-				if (dist > 0 && dist < collisionDistance) {
-					const overlap = (collisionDistance - dist) / 2;
-					const nx = dx / dist;
-					const ny = dy / dist;
+				if (dist === 0 || dist >= collisionDistance) continue;
+				const overlap = (collisionDistance - dist) / 2;
+				const nx = dx / dist;
+				const ny = dy / dist;
+				if (playerA.team === playerB.team) {
+					if (ballCarrier && playerA === ballCarrier) {
+						playerB.x += nx * overlap * 2;
+						playerB.y += ny * overlap * 2;
+					} else if (ballCarrier && playerB === ballCarrier) {
+						playerA.x -= nx * overlap * 2;
+						playerA.y -= ny * overlap * 2;
+					} else {
+						playerA.x -= nx * overlap;
+						playerA.y -= ny * overlap;
+						playerB.x += nx * overlap;
+						playerB.y += ny * overlap;
+					}
+				} else {
 					playerA.x -= nx * overlap;
 					playerA.y -= ny * overlap;
 					playerB.x += nx * overlap;
 					playerB.y += ny * overlap;
 				}
-			});
-		});
+			}
+		}
 	}
 
 	function render(timestamp) {
