@@ -442,46 +442,44 @@
 		let nextId = 1;
 		const players = [];
 		const extraCount = Math.max(0, Math.min(4, extraPlayers));
-		const lineLeft = 170;
-		const lineRight = 370;
-		const wideLeft = 120;
-		const wideRight = 420;
+		const baseLineCount = 5;
+		const lineCount = baseLineCount + extraCount;
+		const lineLeft = 170 - (extraCount * 7);
+		const lineRight = 370 + (extraCount * 7);
+		const teInset = 35;
+		const wrInset = 80;
+		const clampX = (value) => Math.max(40, Math.min(500, value));
 
-		const offenseInteriorRoles = ["SL", "TE", "SL"];
-		for (let i = 0; i < extraCount; i += 1) {
-			if (i % 2 === 0) {
-				offenseInteriorRoles.unshift("OL");
-			} else {
-				offenseInteriorRoles.push("OL");
-			}
+		const lineXs = [];
+		for (let i = 0; i < lineCount; i += 1) {
+			const t = lineCount === 1 ? 0.5 : i / (lineCount - 1);
+			lineXs.push(lineLeft + (lineRight - lineLeft) * t);
 		}
-		const offenseInteriorCount = offenseInteriorRoles.length;
-		const offenseInteriorXs = [];
-		for (let i = 0; i < offenseInteriorCount; i += 1) {
-			const t = offenseInteriorCount === 1 ? 0.5 : i / (offenseInteriorCount - 1);
-			offenseInteriorXs.push(lineLeft + (lineRight - lineLeft) * t);
-		}
+
+		const teLeftX = clampX(lineLeft - teInset);
+		const teRightX = clampX(lineRight + teInset);
+		const wrLeftX = clampX(lineLeft - wrInset);
+		const wrRightX = clampX(lineRight + wrInset);
 
 		players.push(new Player(nextId++, 270, 760, "offense", "QB"));
-		players.push(new Player(nextId++, wideLeft, 760, "offense", "WR"));
-		players.push(new Player(nextId++, wideRight, 760, "offense", "WR"));
 		players.push(new Player(nextId++, 270, 760, "offense", "RB"));
-		offenseInteriorRoles.forEach((role, index) => {
-			players.push(new Player(nextId++, offenseInteriorXs[index], 760, "offense", role));
+		players.push(new Player(nextId++, wrLeftX, 760, "offense", "WR"));
+		players.push(new Player(nextId++, wrRightX, 760, "offense", "WR"));
+		players.push(new Player(nextId++, teLeftX, 760, "offense", "TE"));
+		players.push(new Player(nextId++, teRightX, 760, "offense", "TE"));
+		lineXs.forEach(x => {
+			players.push(new Player(nextId++, x, 760, "offense", "OL"));
 		});
 
-		const defenseLineCount = 1 + extraCount;
-		const defenseLineXs = [];
-		for (let i = 0; i < defenseLineCount; i += 1) {
-			const t = defenseLineCount === 1 ? 0.5 : i / (defenseLineCount - 1);
-			defenseLineXs.push(lineLeft + (lineRight - lineLeft) * t);
-		}
+		const defenseLineXs = lineXs.slice();
+		const lbLeftX = clampX(lineLeft + 40);
+		const lbRightX = clampX(lineRight - 40);
 
 		players.push(new Player(nextId++, 270, 700, "defense", "MLB"));
-		players.push(new Player(nextId++, 170, 700, "defense", "LB"));
-		players.push(new Player(nextId++, 370, 700, "defense", "LB"));
-		players.push(new Player(nextId++, 120, 620, "defense", "CB"));
-		players.push(new Player(nextId++, 420, 620, "defense", "CB"));
+		players.push(new Player(nextId++, lbLeftX, 700, "defense", "LB"));
+		players.push(new Player(nextId++, lbRightX, 700, "defense", "LB"));
+		players.push(new Player(nextId++, wrLeftX, 620, "defense", "CB"));
+		players.push(new Player(nextId++, wrRightX, 620, "defense", "CB"));
 		players.push(new Player(nextId++, 270, 580, "defense", "S"));
 		defenseLineXs.forEach(x => {
 			players.push(new Player(nextId++, x, 700, "defense", "DL"));
@@ -631,11 +629,18 @@
 	};
 
 	function getThrowTargets() {
-		const targets = roster.filter(player => player.team === "offense" && player.role !== "QB");
+		const validRoles = new Set(["WR", "TE", "RB"]);
+		const targets = roster.filter(player => player.team === "offense" && validRoles.has(player.role));
+		const roleOrder = { WR: 1, TE: 2, RB: 3 };
+		targets.sort((a, b) => {
+			const roleDiff = (roleOrder[a.role] ?? 9) - (roleOrder[b.role] ?? 9);
+			if (roleDiff !== 0) return roleDiff;
+			return a.x - b.x;
+		});
 		if (ballCarrier && ballCarrier.role !== "QB") {
 			const qb = roster.find(player => player.role === "QB");
 			if (qb && qb !== ballCarrier) {
-				targets.unshift(qb);
+				targets.push(qb);
 			}
 		}
 		return targets;
@@ -765,12 +770,15 @@
 		if (!list) return;
 		const targets = getThrowTargets();
 		list.innerHTML = "";
+		const roleCounts = {};
 		targets.slice(0, 5).forEach((player, index) => {
+			roleCounts[player.role] = (roleCounts[player.role] ?? 0) + 1;
+			const label = roleCounts[player.role] > 1 ? `${player.role}${roleCounts[player.role]}` : player.role;
 			const item = document.createElement("li");
 			const button = document.createElement("button");
 			button.type = "button";
 			button.tabIndex = -1;
-			button.textContent = `${index + 1}: ${player.role}`;
+			button.textContent = `${index + 1}: ${label}`;
 			let holdStart = 0;
 			button.addEventListener("pointerdown", () => {
 				holdStart = Date.now();
