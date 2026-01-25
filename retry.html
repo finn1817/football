@@ -441,36 +441,51 @@
 	function buildRoster(extraPlayers) {
 		let nextId = 1;
 		const players = [];
-		const offenseBase = [
-			{ role: "QB", x: 270, y: 760 },
-			{ role: "WR", x: 150, y: 760 },
-			{ role: "WR", x: 390, y: 760 },
-			{ role: "RB", x: 270, y: 760 },
-			{ role: "SL", x: 220, y: 760 },
-			{ role: "SL", x: 320, y: 760 },
-			{ role: "TE", x: 270, y: 760 }
-		];
-		const defenseBase = [
-			{ role: "MLB", x: 270, y: 700 },
-			{ role: "LB", x: 170, y: 700 },
-			{ role: "LB", x: 370, y: 700 },
-			{ role: "CB", x: 120, y: 620 },
-			{ role: "CB", x: 420, y: 620 },
-			{ role: "S", x: 270, y: 580 },
-			{ role: "DL", x: 270, y: 700 }
-		];
-		const extraLineX = [190, 230, 310, 350];
-		offenseBase.forEach(({ role, x, y }) => {
-			players.push(new Player(nextId++, x, y, "offense", role));
-		});
-		defenseBase.forEach(({ role, x, y }) => {
-			players.push(new Player(nextId++, x, y, "defense", role));
-		});
 		const extraCount = Math.max(0, Math.min(4, extraPlayers));
+		const lineLeft = 170;
+		const lineRight = 370;
+		const wideLeft = 120;
+		const wideRight = 420;
+
+		const offenseInteriorRoles = ["SL", "TE", "SL"];
 		for (let i = 0; i < extraCount; i += 1) {
-			players.push(new Player(nextId++, extraLineX[i], 760, "offense", "OL"));
-			players.push(new Player(nextId++, extraLineX[i], 700, "defense", "DL"));
+			if (i % 2 === 0) {
+				offenseInteriorRoles.unshift("OL");
+			} else {
+				offenseInteriorRoles.push("OL");
+			}
 		}
+		const offenseInteriorCount = offenseInteriorRoles.length;
+		const offenseInteriorXs = [];
+		for (let i = 0; i < offenseInteriorCount; i += 1) {
+			const t = offenseInteriorCount === 1 ? 0.5 : i / (offenseInteriorCount - 1);
+			offenseInteriorXs.push(lineLeft + (lineRight - lineLeft) * t);
+		}
+
+		players.push(new Player(nextId++, 270, 760, "offense", "QB"));
+		players.push(new Player(nextId++, wideLeft, 760, "offense", "WR"));
+		players.push(new Player(nextId++, wideRight, 760, "offense", "WR"));
+		players.push(new Player(nextId++, 270, 760, "offense", "RB"));
+		offenseInteriorRoles.forEach((role, index) => {
+			players.push(new Player(nextId++, offenseInteriorXs[index], 760, "offense", role));
+		});
+
+		const defenseLineCount = 1 + extraCount;
+		const defenseLineXs = [];
+		for (let i = 0; i < defenseLineCount; i += 1) {
+			const t = defenseLineCount === 1 ? 0.5 : i / (defenseLineCount - 1);
+			defenseLineXs.push(lineLeft + (lineRight - lineLeft) * t);
+		}
+
+		players.push(new Player(nextId++, 270, 700, "defense", "MLB"));
+		players.push(new Player(nextId++, 170, 700, "defense", "LB"));
+		players.push(new Player(nextId++, 370, 700, "defense", "LB"));
+		players.push(new Player(nextId++, 120, 620, "defense", "CB"));
+		players.push(new Player(nextId++, 420, 620, "defense", "CB"));
+		players.push(new Player(nextId++, 270, 580, "defense", "S"));
+		defenseLineXs.forEach(x => {
+			players.push(new Player(nextId++, x, 700, "defense", "DL"));
+		});
 		return players;
 	}
 
