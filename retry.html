@@ -264,6 +264,9 @@
 			const clamped = Math.max(0, Math.min(100, parsed));
 			localStorage.setItem("retry-yard-line", String(clamped));
 			yardLineInput.value = String(clamped);
+			if (typeof applyFormationToLine === "function") {
+				applyFormationToLine(yardLineToY(clamped));
+			}
 		}
 	});
 
@@ -310,6 +313,8 @@
 			this.y = y;
 			this.startX = x;
 			this.startY = y;
+			this.baseX = x;
+			this.baseYOffset = 0;
 			this.team = team; // "offense" or "defense"
 			this.role = role; // "QB", "WR", "LB"
 			this.path = [];
@@ -356,10 +361,31 @@
 		return FIELD_BOTTOM_Y - (percent * FIELD_PLAY_HEIGHT);
 	}
 
+	function setFormationOffsets() {
+		roster.forEach(player => {
+			player.baseX = player.x;
+			player.baseYOffset = player.y - DEFAULT_LINE_OF_SCRIMMAGE_Y;
+		});
+	}
+
+	function applyFormationToLine(lineY) {
+		roster.forEach(player => {
+			player.x = player.baseX;
+			player.y = lineY + player.baseYOffset;
+			player.startX = player.x;
+			player.startY = player.y;
+		});
+	}
+
+	const DEFAULT_LINE_OF_SCRIMMAGE_Y = yardLineToY(DEFAULT_YARD_LINE);
+
 	function getLineOfScrimmageY() {
 		const stored = Number(localStorage.getItem("retry-yard-line") ?? DEFAULT_YARD_LINE);
 		return yardLineToY(stored);
 	}
+
+	setFormationOffsets();
+	applyFormationToLine(getLineOfScrimmageY());
 
 	console.log("[Step 2] Roster initialized:", roster);
 </script>
