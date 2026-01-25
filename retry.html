@@ -113,6 +113,41 @@
 			background: #4aa3ff;
 			color: #0b0b0b;
 		}
+		#settingsModal {
+			display: none;
+			background: #111;
+			border: 2px solid #2f2f2f;
+			box-shadow: 0 0 20px rgba(0,0,0,0.5);
+			padding: 16px;
+			border-radius: 6px;
+		}
+		#settingsModal.active {
+			display: block;
+		}
+		.settingsRow {
+			display: flex;
+			flex-direction: column;
+			gap: 6px;
+			margin-top: 10px;
+		}
+		.settingsRow input {
+			padding: 8px;
+			border-radius: 4px;
+			border: 1px solid #2c2c2c;
+			background: #1a1a1a;
+			color: white;
+			font-family: monospace;
+		}
+		.settingsActions {
+			display: flex;
+			gap: 10px;
+			margin-top: 12px;
+		}
+		#savePlayBtn {
+			background: #1e1e1e;
+			color: white;
+			border: 1px solid #2c2c2c;
+		}
 		h1 {
 			margin: 0;
 			text-shadow: 2px 2px black;
@@ -178,6 +213,21 @@
 			<button id="resetBtn" tabindex="-1">RESET</button>
 			<button id="settingsBtn" tabindex="-1">GAME SETTINGS</button>
 		</div>
+		<div id="settingsModal">
+			<div><strong>Settings</strong></div>
+			<div class="settingsRow">
+				<label for="yardLineInput">Start play at which yard line? (0-100)</label>
+				<input id="yardLineInput" type="number" min="0" max="100" value="35" />
+			</div>
+			<div class="settingsRow">
+				<label for="playNameInput">Name your play</label>
+				<input id="playNameInput" type="text" placeholder="My Play" />
+			</div>
+			<div class="settingsActions">
+				<button id="saveSettingsBtn" type="button">Save Yard Line</button>
+				<button id="savePlayBtn" type="button">Save Last Play</button>
+			</div>
+		</div>
 	</aside>
 </div>
 
@@ -186,6 +236,11 @@
 	const pauseBtn = document.getElementById("pauseBtn");
 	const resetBtn = document.getElementById("resetBtn");
 	const settingsBtn = document.getElementById("settingsBtn");
+	const settingsModal = document.getElementById("settingsModal");
+	const yardLineInput = document.getElementById("yardLineInput");
+	const playNameInput = document.getElementById("playNameInput");
+	const saveSettingsBtn = document.getElementById("saveSettingsBtn");
+	const savePlayBtn = document.getElementById("savePlayBtn");
 	const timerLabel = document.getElementById("timer");
 	let paused = false;
 
@@ -200,34 +255,38 @@
 	});
 
 	settingsBtn.addEventListener("click", () => {
-		const yardInput = window.prompt("Start play at which yard line? (0-100)", "35");
-		if (yardInput !== null) {
-			const parsed = Number(yardInput);
-			if (!Number.isNaN(parsed)) {
-				const clamped = Math.max(0, Math.min(100, parsed));
-				localStorage.setItem("retry-yard-line", String(clamped));
-			}
-		}
+		settingsModal.classList.toggle("active");
+	});
 
-		const playName = window.prompt("Name this play to save it:", "My Play");
-		if (playName) {
-			const yardLine = Number(localStorage.getItem("retry-yard-line") ?? "35");
-			const payload = {
-				name: playName,
-				yardLine,
-				roster: typeof roster !== "undefined" ? roster.map(p => ({
-					id: p.id,
-					team: p.team,
-					role: p.role,
-					x: p.x,
-					y: p.y,
-					path: p.path ?? []
-				})) : [],
-				savedAt: new Date().toISOString()
-			};
-			localStorage.setItem(`retry-play-${playName}`, JSON.stringify(payload));
-			localStorage.setItem("retry-last-play", playName);
+	saveSettingsBtn.addEventListener("click", () => {
+		const parsed = Number(yardLineInput.value);
+		if (!Number.isNaN(parsed)) {
+			const clamped = Math.max(0, Math.min(100, parsed));
+			localStorage.setItem("retry-yard-line", String(clamped));
+			yardLineInput.value = String(clamped);
 		}
+	});
+
+	savePlayBtn.addEventListener("click", () => {
+		const playName = playNameInput.value.trim();
+		if (!playName) return;
+		const yardLine = Number(localStorage.getItem("retry-yard-line") ?? "35");
+		const payload = {
+			name: playName,
+			yardLine,
+			roster: typeof roster !== "undefined" ? roster.map(p => ({
+				id: p.id,
+				team: p.team,
+				role: p.role,
+				x: p.x,
+				y: p.y,
+				path: p.path ?? []
+			})) : [],
+			savedAt: new Date().toISOString()
+		};
+		localStorage.setItem(`retry-play-${playName}`, JSON.stringify(payload));
+		localStorage.setItem("retry-last-play", playName);
+		playNameInput.value = "";
 	});
 </script>
 
@@ -272,23 +331,23 @@
 
 	const roster = [
 		// --- OFFENSE (Blue) ---
-		new Player(1, 270, 780, "offense", "QB"),
-		new Player(2, 170, 760, "offense", "WR"),
-		new Player(3, 370, 760, "offense", "WR"),
-		new Player(4, 270, 820, "offense", "RB"),
-		new Player(5, 220, 800, "offense", "SL"),
-		new Player(6, 320, 800, "offense", "SL"),
-		new Player(7, 270, 850, "offense", "TE"),
+		new Player(1, 270, 820, "offense", "QB"),
+		new Player(2, 150, 760, "offense", "WR"),
+		new Player(3, 390, 760, "offense", "WR"),
+		new Player(4, 270, 860, "offense", "RB"),
+		new Player(5, 220, 760, "offense", "SL"),
+		new Player(6, 320, 760, "offense", "SL"),
+		new Player(7, 270, 760, "offense", "TE"),
 
 		// --- DEFENSE (Red) ---
-		new Player(8, 270, 380, "defense", "MLB"),
-		new Player(9, 150, 330, "defense", "LB"),
-		new Player(10, 390, 330, "defense", "LB"),
-		new Player(11, 120, 250, "defense", "CB"),
-		new Player(12, 420, 250, "defense", "CB"),
-		new Player(13, 270, 220, "defense", "S"),
-		new Player(14, 200, 350, "defense", "DL"),
-		new Player(15, 340, 350, "defense", "DL")
+		new Player(8, 270, 700, "defense", "MLB"),
+		new Player(9, 170, 700, "defense", "LB"),
+		new Player(10, 370, 700, "defense", "LB"),
+		new Player(11, 120, 620, "defense", "CB"),
+		new Player(12, 420, 620, "defense", "CB"),
+		new Player(13, 270, 580, "defense", "S"),
+		new Player(14, 220, 700, "defense", "DL"),
+		new Player(15, 320, 700, "defense", "DL")
 	];
 
 	function yardLineToY(yardLine) {
