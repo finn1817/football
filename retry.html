@@ -217,7 +217,7 @@
 			<div><strong>Settings</strong></div>
 			<div class="settingsRow">
 				<label for="yardLineInput">Start play at which yard line? (0-100)</label>
-				<input id="yardLineInput" type="number" min="0" max="100" value="35" />
+				<input id="yardLineInput" type="number" min="0" max="100" value="25" />
 			</div>
 			<div class="settingsRow">
 				<label for="playNameInput">Name your play</label>
@@ -273,7 +273,7 @@
 	savePlayBtn.addEventListener("click", () => {
 		const playName = playNameInput.value.trim();
 		if (!playName) return;
-		const yardLine = Number(localStorage.getItem("retry-yard-line") ?? "35");
+		const yardLine = Number(localStorage.getItem("retry-yard-line") ?? "25");
 		const payload = {
 			name: playName,
 			yardLine,
@@ -299,7 +299,7 @@
 	const FIELD_HEIGHT = 900;
 	const ENDZONE_HEIGHT = 50;
 	const YARDS_PER_FIELD = 100;
-	const DEFAULT_YARD_LINE = 35;
+	const DEFAULT_YARD_LINE =25;
 	const FIELD_TOP_Y = ENDZONE_HEIGHT;
 	const FIELD_BOTTOM_Y = FIELD_HEIGHT - ENDZONE_HEIGHT;
 	const FIELD_PLAY_HEIGHT = FIELD_BOTTOM_Y - FIELD_TOP_Y;
@@ -363,16 +363,16 @@
 
 	function setFormationOffsets() {
 		const roleOffsetY = {
-			QB: 60,
-			RB: 110,
-			WR: 0,
-			SL: 0,
-			TE: 0,
-			MLB: -60,
-			LB: -60,
-			DL: -60,
-			CB: -140,
-			S: -200
+			QB: 70,
+			RB: 120,
+			WR: 20,
+			SL: 20,
+			TE: 20,
+			MLB: -50,
+			LB: -50,
+			DL: -50,
+			CB: -130,
+			S: -190
 		};
 
 		roster.forEach(player => {
