@@ -182,6 +182,7 @@
 		<div class="section">
 			<div><strong>Throw</strong></div>
 			<div>Press 1–5 to pass. Hold to lob.</div>
+			<div>Press 6 to lateral back to QB. Hold to lob.</div>
 			<ul id="receiverList"></ul>
 			<div class="hint">Numbers map to the labeled receivers on the field.</div>
 		</div>
@@ -594,7 +595,7 @@
 		if (!ballCarrier || ballCarrier.team !== "offense") return;
 		const qb = roster.find(player => player.role === "QB");
 		if (!qb || qb === ballCarrier) return;
-		if (qb.y >= ballCarrier.y) return;
+		if (qb.y <= ballCarrier.y) return;
 		if (ballFlight?.active) return;
 
 		const start = { x: ballCarrier.x, y: ballCarrier.y };
