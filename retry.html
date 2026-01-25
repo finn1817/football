@@ -143,6 +143,22 @@
 			gap: 10px;
 			margin-top: 12px;
 		}
+		.optionButtons {
+			display: flex;
+			gap: 6px;
+			flex-wrap: wrap;
+		}
+		.optionButtons button {
+			background: #1e1e1e;
+			color: white;
+			border: 1px solid #2c2c2c;
+			font-size: 14px;
+			padding: 6px 10px;
+		}
+		.optionButtons button.active {
+			background: orange;
+			color: #0b0b0b;
+		}
 		#savePlayBtn {
 			background: #1e1e1e;
 			color: white;
@@ -220,6 +236,17 @@
 				<input id="yardLineInput" type="number" min="0" max="100" value="25" />
 			</div>
 			<div class="settingsRow">
+				<label>Add players to each team</label>
+				<div id="extraPlayersGroup" class="optionButtons">
+					<button type="button" data-count="0">0</button>
+					<button type="button" data-count="1">1</button>
+					<button type="button" data-count="2">2</button>
+					<button type="button" data-count="3">3</button>
+					<button type="button" data-count="4">4</button>
+				</div>
+				<div class="hint">Adds a lineman on offense and defense for each level.</div>
+			</div>
+			<div class="settingsRow">
 				<label for="playNameInput">Name your play</label>
 				<input id="playNameInput" type="text" placeholder="My Play" />
 			</div>
@@ -242,6 +269,7 @@
 	const saveSettingsBtn = document.getElementById("saveSettingsBtn");
 	const savePlayBtn = document.getElementById("savePlayBtn");
 	const timerLabel = document.getElementById("timer");
+	const extraPlayersGroup = document.getElementById("extraPlayersGroup");
 	let paused = false;
 	window.retryState = window.retryState ?? {
 		prepPhase: true,
@@ -255,6 +283,7 @@
 	} else {
 		localStorage.setItem("retry-yard-line", String(yardLineInput.value));
 	}
+	const storedExtraPlayers = Number(localStorage.getItem("retry-extra-players") ?? "0");
 
 	pauseBtn.addEventListener("click", () => {
 		paused = !paused;
@@ -299,6 +328,34 @@
 			snapLocked = false;
 		}
 	});
+
+	function updateExtraPlayersButtons(value) {
+		if (!extraPlayersGroup) return;
+		[...extraPlayersGroup.querySelectorAll("button")].forEach(btn => {
+			const count = Number(btn.dataset.count ?? "0");
+			btn.classList.toggle("active", count === value);
+		});
+	}
+
+	function setExtraPlayers(value) {
+		const clamped = Math.max(0, Math.min(4, value));
+		localStorage.setItem("retry-extra-players", String(clamped));
+		updateExtraPlayersButtons(clamped);
+		if (typeof window.setExtraPlayersCount === "function") {
+			window.setExtraPlayersCount(clamped);
+		}
+	}
+
+	if (extraPlayersGroup) {
+		updateExtraPlayersButtons(storedExtraPlayers);
+		extraPlayersGroup.addEventListener("click", event => {
+			const target = event.target.closest("button");
+			if (!target) return;
+			const count = Number(target.dataset.count ?? "0");
+			if (Number.isNaN(count)) return;
+			setExtraPlayers(count);
+		});
+	}
 
 	savePlayBtn.addEventListener("click", () => {
 		const playName = playNameInput.value.trim();
@@ -364,26 +421,7 @@
 		}
 	}
 
-	const roster = [
-		// --- OFFENSE (Blue) ---
-		new Player(1, 270, 820, "offense", "QB"),
-		new Player(2, 150, 760, "offense", "WR"),
-		new Player(3, 390, 760, "offense", "WR"),
-		new Player(4, 270, 860, "offense", "RB"),
-		new Player(5, 220, 760, "offense", "SL"),
-		new Player(6, 320, 760, "offense", "SL"),
-		new Player(7, 270, 760, "offense", "TE"),
-
-		// --- DEFENSE (Red) ---
-		new Player(8, 270, 700, "defense", "MLB"),
-		new Player(9, 170, 700, "defense", "LB"),
-		new Player(10, 370, 700, "defense", "LB"),
-		new Player(11, 120, 620, "defense", "CB"),
-		new Player(12, 420, 620, "defense", "CB"),
-		new Player(13, 270, 580, "defense", "S"),
-		new Player(14, 220, 700, "defense", "DL"),
-		new Player(15, 320, 700, "defense", "DL")
-	];
+	let roster = [];
 
 	const SPEED_YPS = {
 		QB: 5.8,
@@ -391,6 +429,7 @@
 		WR: 6.7,
 		SL: 6.6,
 		TE: 6.1,
+		OL: 5.6,
 		MLB: 6.0,
 		LB: 6.1,
 		DL: 5.4,
@@ -399,9 +438,47 @@
 	};
 	const SPEED_MULTIPLIER = 1.15; // edit this number to tweak overall speed! - master number 
 
-	roster.forEach(player => {
-		player.speedYps = (SPEED_YPS[player.role] ?? 6.0) * SPEED_MULTIPLIER;
-	});
+	function buildRoster(extraPlayers) {
+		let nextId = 1;
+		const players = [];
+		const offenseBase = [
+			{ role: "QB", x: 270, y: 760 },
+			{ role: "WR", x: 150, y: 760 },
+			{ role: "WR", x: 390, y: 760 },
+			{ role: "RB", x: 270, y: 760 },
+			{ role: "SL", x: 220, y: 760 },
+			{ role: "SL", x: 320, y: 760 },
+			{ role: "TE", x: 270, y: 760 }
+		];
+		const defenseBase = [
+			{ role: "MLB", x: 270, y: 700 },
+			{ role: "LB", x: 170, y: 700 },
+			{ role: "LB", x: 370, y: 700 },
+			{ role: "CB", x: 120, y: 620 },
+			{ role: "CB", x: 420, y: 620 },
+			{ role: "S", x: 270, y: 580 },
+			{ role: "DL", x: 270, y: 700 }
+		];
+		const extraLineX = [190, 230, 310, 350];
+		offenseBase.forEach(({ role, x, y }) => {
+			players.push(new Player(nextId++, x, y, "offense", role));
+		});
+		defenseBase.forEach(({ role, x, y }) => {
+			players.push(new Player(nextId++, x, y, "defense", role));
+		});
+		const extraCount = Math.max(0, Math.min(4, extraPlayers));
+		for (let i = 0; i < extraCount; i += 1) {
+			players.push(new Player(nextId++, extraLineX[i], 760, "offense", "OL"));
+			players.push(new Player(nextId++, extraLineX[i], 700, "defense", "DL"));
+		}
+		return players;
+	}
+
+	function applySpeeds() {
+		roster.forEach(player => {
+			player.speedYps = (SPEED_YPS[player.role] ?? 6.0) * SPEED_MULTIPLIER;
+		});
+	}
 
 	function yardLineToY(yardLine) {
 		const clamped = Math.max(0, Math.min(100, yardLine));
@@ -416,6 +493,7 @@
 			WR: 20,
 			SL: 20,
 			TE: 20,
+			OL: 0,
 			MLB: -50,
 			LB: -50,
 			DL: -50,
@@ -446,8 +524,21 @@
 		return yardLineToY(stored);
 	}
 
-	setFormationOffsets();
-	applyFormationToLine(getLineOfScrimmageY());
+	function initializeRoster(extraPlayers) {
+		roster = buildRoster(extraPlayers);
+		setFormationOffsets();
+		applyFormationToLine(getLineOfScrimmageY());
+		applySpeeds();
+	}
+
+	const initialExtraPlayers = Number(localStorage.getItem("retry-extra-players") ?? "0");
+	initializeRoster(initialExtraPlayers);
+	window.setExtraPlayersCount = (count) => {
+		initializeRoster(count);
+		if (typeof window.onRosterChanged === "function") {
+			window.onRosterChanged();
+		}
+	};
 
 	console.log("[Step 2] Roster initialized:", roster);
 </script>
@@ -471,6 +562,16 @@
 	const THROW_KEYS_MAX = 5;
 	const keyHoldStart = {};
 	const collisionDistance = 30;
+
+	window.onRosterChanged = () => {
+		selectedPlayer = null;
+		ballFlight = null;
+		ballCarrier = roster.find(player => player.role === "QB") ?? roster[0];
+		roster.forEach(player => {
+			player.hasBall = (player === ballCarrier);
+			player.pathIndex = 0;
+		});
+	};
 
 	function handleInput(type, x, y) {
 		if (!state.prepPhase && !state.gameActive) return;
@@ -515,7 +616,20 @@
 	};
 
 	function getThrowTargets() {
-		return roster.filter(player => player.team === "offense" && player.role !== "QB");
+		const targets = roster.filter(player => player.team === "offense" && player.role !== "QB");
+		if (ballCarrier && ballCarrier.role !== "QB") {
+			const qb = roster.find(player => player.role === "QB");
+			if (qb && qb !== ballCarrier) {
+				targets.unshift(qb);
+			}
+		}
+		return targets;
+	}
+
+	function canThrowFromPosition() {
+		if (!ballCarrier) return false;
+		const losY = getLineOfScrimmageY();
+		return ballCarrier.y >= (losY - 2);
 	}
 
 	function defenderOnLine(start, end) {
@@ -544,6 +658,8 @@
 		if (!ballCarrier || ballCarrier.team !== "offense") return;
 		if (!targetPlayer || targetPlayer.team !== "offense") return;
 		if (ballFlight?.active) return;
+		if (!canThrowFromPosition()) return;
+		if (targetPlayer.role === "QB" && targetPlayer.y < (getLineOfScrimmageY() - 2)) return;
 
 		const start = { x: ballCarrier.x, y: ballCarrier.y };
 		const end = { x: targetPlayer.x, y: targetPlayer.y };
