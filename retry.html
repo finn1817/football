@@ -194,5 +194,57 @@
 	});
 </script>
 
+<!-- Core Data Models (Step 2) -->
+<script>
+	class Player {
+		constructor(id, x, y, team, role) {
+			this.id = id;
+			this.x = x;
+			this.y = y;
+			this.startX = x;
+			this.startY = y;
+			this.team = team; // "offense" or "defense"
+			this.role = role; // "QB", "WR", "LB"
+			this.path = [];
+			this.pathIndex = 0;
+			this.speed = 3.0;
+			this.hasBall = (role === "QB");
+			this.isDead = false;
+		}
+
+		reset() {
+			this.x = this.startX;
+			this.y = this.startY;
+			this.path = [];
+			this.pathIndex = 0;
+			this.isDead = false;
+			this.hasBall = (this.role === "QB");
+		}
+	}
+
+	const roster = [
+		// --- OFFENSE (Blue) ---
+		new Player(1, 270, 780, "offense", "QB"),
+		new Player(2, 170, 760, "offense", "WR"),
+		new Player(3, 370, 760, "offense", "WR"),
+		new Player(4, 270, 820, "offense", "RB"),
+		new Player(5, 220, 800, "offense", "SL"),
+		new Player(6, 320, 800, "offense", "SL"),
+		new Player(7, 270, 850, "offense", "TE"),
+
+		// --- DEFENSE (Red) ---
+		new Player(8, 270, 380, "defense", "MLB"),
+		new Player(9, 150, 330, "defense", "LB"),
+		new Player(10, 390, 330, "defense", "LB"),
+		new Player(11, 120, 250, "defense", "CB"),
+		new Player(12, 420, 250, "defense", "CB"),
+		new Player(13, 270, 220, "defense", "S"),
+		new Player(14, 200, 350, "defense", "DL"),
+		new Player(15, 340, 350, "defense", "DL")
+	];
+
+	console.log("[Step 2] Roster initialized:", roster);
+</script>
+
 </body>
 </html>
