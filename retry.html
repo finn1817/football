@@ -109,6 +109,10 @@
 			flex-direction: column;
 			gap: 10px;
 		}
+		#settingsBtn {
+			background: #4aa3ff;
+			color: #0b0b0b;
+		}
 		h1 {
 			margin: 0;
 			text-shadow: 2px 2px black;
@@ -172,6 +176,7 @@
 			<button id="snapBtn" tabindex="-1">SNAP BALL</button>
 			<button id="pauseBtn" tabindex="-1">PAUSE</button>
 			<button id="resetBtn" tabindex="-1">RESET</button>
+			<button id="settingsBtn" tabindex="-1">GAME SETTINGS</button>
 		</div>
 	</aside>
 </div>
@@ -180,6 +185,7 @@
 <script>
 	const pauseBtn = document.getElementById("pauseBtn");
 	const resetBtn = document.getElementById("resetBtn");
+	const settingsBtn = document.getElementById("settingsBtn");
 	const timerLabel = document.getElementById("timer");
 	let paused = false;
 
@@ -192,10 +198,52 @@
 	resetBtn.addEventListener("click", () => {
 		window.location.reload();
 	});
+
+	settingsBtn.addEventListener("click", () => {
+		const yardInput = window.prompt("Start play at which yard line? (0-100)", "35");
+		if (yardInput !== null) {
+			const parsed = Number(yardInput);
+			if (!Number.isNaN(parsed)) {
+				const clamped = Math.max(0, Math.min(100, parsed));
+				localStorage.setItem("retry-yard-line", String(clamped));
+			}
+		}
+
+		const playName = window.prompt("Name this play to save it:", "My Play");
+		if (playName) {
+			const yardLine = Number(localStorage.getItem("retry-yard-line") ?? "35");
+			const payload = {
+				name: playName,
+				yardLine,
+				roster: typeof roster !== "undefined" ? roster.map(p => ({
+					id: p.id,
+					team: p.team,
+					role: p.role,
+					x: p.x,
+					y: p.y,
+					path: p.path ?? []
+				})) : [],
+				savedAt: new Date().toISOString()
+			};
+			localStorage.setItem(`retry-play-${playName}`, JSON.stringify(payload));
+			localStorage.setItem("retry-last-play", playName);
+		}
+	});
 </script>
 
 <!-- Core Data Models (Step 2) -->
 <script>
+	const FIELD_WIDTH = 540;
+	const FIELD_HEIGHT = 900;
+	const ENDZONE_HEIGHT = 50;
+	const YARDS_PER_FIELD = 100;
+	const DEFAULT_YARD_LINE = 35;
+	const FIELD_TOP_Y = ENDZONE_HEIGHT;
+	const FIELD_BOTTOM_Y = FIELD_HEIGHT - ENDZONE_HEIGHT;
+	const FIELD_PLAY_HEIGHT = FIELD_BOTTOM_Y - FIELD_TOP_Y;
+	const LINE_COLOR = "rgba(255,255,255,0.3)";
+	const LOS_COLOR = "rgba(255,255,255,0.8)";
+
 	class Player {
 		constructor(id, x, y, team, role) {
 			this.id = id;
@@ -243,7 +291,85 @@
 		new Player(15, 340, 350, "defense", "DL")
 	];
 
+	function yardLineToY(yardLine) {
+		const clamped = Math.max(0, Math.min(100, yardLine));
+		const percent = clamped / YARDS_PER_FIELD;
+		return FIELD_BOTTOM_Y - (percent * FIELD_PLAY_HEIGHT);
+	}
+
+	function getLineOfScrimmageY() {
+		const stored = Number(localStorage.getItem("retry-yard-line") ?? DEFAULT_YARD_LINE);
+		return yardLineToY(stored);
+	}
+
 	console.log("[Step 2] Roster initialized:", roster);
+</script>
+
+<!-- Render Loop (Step 3) -->
+<script>
+	const canvas = document.getElementById("gameCanvas");
+	const ctx = canvas.getContext("2d");
+
+	function drawField() {
+		ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+		ctx.strokeStyle = LINE_COLOR;
+		ctx.lineWidth = 2;
+		for (let i = 0; i < canvas.height; i += 50) {
+			ctx.beginPath();
+			ctx.moveTo(0, i);
+			ctx.lineTo(canvas.width, i);
+			ctx.stroke();
+		}
+
+		ctx.fillStyle = "rgba(0,0,100,0.2)";
+		ctx.fillRect(0, 0, canvas.width, ENDZONE_HEIGHT);
+		ctx.fillRect(0, canvas.height - ENDZONE_HEIGHT, canvas.width, ENDZONE_HEIGHT);
+
+		const losY = getLineOfScrimmageY();
+		ctx.strokeStyle = LOS_COLOR;
+		ctx.lineWidth = 3;
+		ctx.setLineDash([10, 6]);
+		ctx.beginPath();
+		ctx.moveTo(0, losY);
+		ctx.lineTo(canvas.width, losY);
+		ctx.stroke();
+		ctx.setLineDash([]);
+	}
+
+	function drawPlayers() {
+		roster.forEach(p => {
+			ctx.fillStyle = "rgba(0,0,0,0.5)";
+			ctx.beginPath();
+			ctx.arc(p.x + 2, p.y + 2, 15, 0, Math.PI * 2);
+			ctx.fill();
+
+			ctx.fillStyle = (p.team === "offense") ? "#0099ff" : "#ff3300";
+			ctx.beginPath();
+			ctx.arc(p.x, p.y, 15, 0, Math.PI * 2);
+			ctx.fill();
+
+			if (p.hasBall) {
+				ctx.fillStyle = "brown";
+				ctx.beginPath();
+				ctx.arc(p.x, p.y, 8, 0, Math.PI * 2);
+				ctx.fill();
+			}
+
+			ctx.fillStyle = "white";
+			ctx.font = "10px Arial";
+			ctx.textAlign = "center";
+			ctx.fillText(p.role, p.x, p.y + 4);
+		});
+	}
+
+	function render() {
+		drawField();
+		drawPlayers();
+		requestAnimationFrame(render);
+	}
+
+	render();
 </script>
 
 </body>

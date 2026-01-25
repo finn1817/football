@@ -1,0 +1,47 @@
+We’ll rebuild in this order and you’ll test after each step.
+
+Step 1 — Page + layout only (no game)
+Build layout, controls panel, canvas sizing, HUD only.
+Goal: confirm layout sizing and UI works.
+Test: page loads, buttons visible, canvas size correct.
+
+Step 2 — Core data models (no render loop)
+Add Player class and roster data only.
+No motion or draw yet.
+Test: console logs show roster initialized.
+
+Step 3 — Render loop (static field + players)
+Draw field lines, endzones, and static players.
+No movement or input yet.
+Test: players appear in correct spots.
+
+Step 4 — Input paths (route drawing)
+Add mouse/touch input and route line drawing.
+No movement yet.
+Test: drawing routes works in prep.
+
+Step 5 — Movement mechanics
+Move offense along routes.
+No defense yet.
+Test: offense follows routes smoothly.
+
+Step 6 — Ball / throwing (keyboard + click)
+Implement attemptThrow, ballFlight, and keyboard 1–5.
+Add click/hold on receiver list for bullet/lob.
+Test: bullet throws and lobs both work every time.
+
+Step 7 — Defense AI + tackling
+Add defender chase logic and tackle detection.
+Test: defenders move to ball, tackles end play.
+
+Step 8 — Interception line checks
+Add interception logic for bullets.
+
+Test: bullet picked if defender on line; lob clears.
+Step 9 — Polishing + HUD states
+Add “GO/PREP” states, reset, and optional debug text.
+
+Future Vision — Playbook Platform (not yet implemented)
+- Build an NFL-style playbook site where users draw plays, simulate outcomes, and track stats.
+- Allow per-player speed adjustments to model real-time scenarios.
+- Add a structured play library and analytics dashboard.
