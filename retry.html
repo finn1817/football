@@ -739,6 +739,8 @@
 	let defenseAssigned = false;
 	const tackleHoldSeconds = 1.0;
 	const tackleContact = new Map();
+	const defenseStunUntil = new Map();
+	const DEFENDER_STUN_MS = 1000;
 
 	window.onRosterChanged = () => {
 		selectedPlayer = null;
@@ -1016,6 +1018,7 @@
 		if (!defenseAssigned) {
 			defenseAssigned = true;
 		}
+		const now = performance.now();
 		const assignments = assignDefenseTargets();
 		const losY = getLineOfScrimmageY();
 		const qb = roster.find(player => player.role === "QB" && player.team === "offense");
@@ -1023,6 +1026,8 @@
 
 		roster.forEach(defender => {
 			if (defender.team !== "defense") return;
+			const stunnedUntil = defenseStunUntil.get(defender.id) ?? 0;
+			if (stunnedUntil > now) return;
 			let target = null;
 			if (defender.role === "CB" || defender.role === "LB") {
 				const assignedId = assignments.get(defender.id);
@@ -1140,7 +1145,7 @@
 		ctx.stroke();
 		ctx.setLineDash([]);
 
-		const firstDownY = losY - (10 * pixelsPerYard);
+		const firstDownY = window.downsState?.lineToGainY ?? (losY - (10 * pixelsPerYard));
 		ctx.strokeStyle = "#ffd54a";
 		ctx.lineWidth = 2;
 		ctx.beginPath();
@@ -1156,7 +1161,17 @@
 			ctx.arc(p.x + 2, p.y + 2, 15, 0, Math.PI * 2);
 			ctx.fill();
 
-			ctx.fillStyle = (p.team === "offense") ? "#0099ff" : "#ff3300";
+			let fillColor = p.team === "offense" ? "#0099ff" : "#ff3300";
+			if (p.team === "defense" && p.role === "DL") {
+				fillColor = "#ff6655";
+			}
+			if (p.team === "defense") {
+				const stunnedUntil = defenseStunUntil.get(p.id) ?? 0;
+				if (stunnedUntil > performance.now()) {
+					fillColor = "#9a9a9a";
+				}
+			}
+			ctx.fillStyle = fillColor;
 			ctx.beginPath();
 			ctx.arc(p.x, p.y, 15, 0, Math.PI * 2);
 			ctx.fill();
@@ -1227,6 +1242,11 @@
 		});
 	}
 
+	function stunDefender(player) {
+		if (!player || player.team !== "defense") return;
+		defenseStunUntil.set(player.id, performance.now() + DEFENDER_STUN_MS);
+	}
+
 	function resolveCollisions() {
 		for (let i = 0; i < roster.length; i += 1) {
 			for (let j = i + 1; j < roster.length; j += 1) {
@@ -1240,6 +1260,8 @@
 				const overlap = (collisionDistance - dist) / 2;
 				const nx = dx / dist;
 				const ny = dy / dist;
+				stunDefender(playerA);
+				stunDefender(playerB);
 				if (playerA.team === playerB.team) {
 					if (ballCarrier && playerA === ballCarrier) {
 						playerB.x += nx * overlap * 2;
@@ -1257,10 +1279,13 @@
 					if (involvesBallCarrier) {
 						continue;
 					}
-					playerA.x -= nx * overlap;
-					playerA.y -= ny * overlap;
-					playerB.x += nx * overlap;
-					playerB.y += ny * overlap;
+					if (playerA.team === "defense") {
+						playerA.x -= nx * overlap * 2;
+						playerA.y -= ny * overlap * 2;
+					} else if (playerB.team === "defense") {
+						playerB.x += nx * overlap * 2;
+						playerB.y += ny * overlap * 2;
+					}
 				}
 			}
 		}
