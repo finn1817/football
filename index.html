@@ -1,139 +1,1316 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>Phil's Football Remake</title>
-    <style>
-        body { 
-            margin: 0; 
-            background: #222; 
-            height: 100vh; 
-            color: white; 
-            font-family: monospace;
-        }
-        #layout {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            gap: 24px;
-            height: 100vh;
-            padding: 20px;
-            box-sizing: border-box;
-        }
-        #controlsPanel {
-            width: 260px;
-            height: 900px;
-            background: #111;
-            border: 2px solid #2f2f2f;
-            box-shadow: 0 0 20px rgba(0,0,0,0.5);
-            padding: 16px;
-            box-sizing: border-box;
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-        }
-        #controlsPanel h2 {
-            margin: 0 0 6px 0;
-            font-size: 18px;
-            text-align: center;
-        }
-        #controlsPanel .section {
-            background: #1a1a1a;
-            border: 1px solid #2c2c2c;
-            padding: 10px;
-            border-radius: 6px;
-        }
-        #controlsPanel ul {
-            margin: 8px 0 0 0;
-            padding: 0 0 0 16px;
-        }
-        #controlsPanel li {
-            margin: 4px 0;
-        }
-        #controlsPanel .hint {
-            color: #b5b5b5;
-            font-size: 12px;
-        }
-        .linkButton {
-            display: inline-block;
-            padding: 8px 12px;
-            background: #4aa3ff;
-            color: #0b0b0b;
-            font-weight: bold;
-            text-decoration: none;
-            border-radius: 4px;
-            text-align: center;
-        }
-        #gameContainer {
-            position: relative;
-            width: 540px; /* Wider play surface */
-            height: 900px; /* Taller play surface */
-            box-shadow: 0 0 20px rgba(0,0,0,0.5);
-            background: black;
-        }
-        canvas {
-            background: #2e8b57; /* Fallback Green */
-            /* UNCOMMENT BELOW TO USE REAL VIDEO BACKGROUND */
-            /* background: transparent; */
-        }
-        #ui-layer {
-            position: absolute;
-            top: 0; left: 0; width: 100%; height: 100%;
-            pointer-events: none; /* Let clicks pass through to canvas */
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            padding: 20px;
-            box-sizing: border-box;
-        }
-        h1 { margin: 0; text-shadow: 2px 2px black; }
-        #timer { font-size: 40px; color: yellow; font-weight: bold; }
-        button { pointer-events: auto; padding: 10px 20px; cursor: pointer; font-size: 16px; background: orange; border: none; font-weight: bold; }
-    </style>
+	<meta charset="UTF-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1" />
+	<title>Pocket Bowl Retry</title>
+	<style>
+		/* Basic page reset */
+		body {
+			margin: 0;
+			background: #222;
+			height: 100vh;
+			color: white;
+			font-family: monospace;
+		}
+
+		/* Layout wrapper */
+		#layout {
+			display: flex;
+			justify-content: center;
+			align-items: center;
+			gap: 24px;
+			height: 100vh;
+			padding: 20px;
+			box-sizing: border-box;
+		}
+
+		/* Controls panel */
+		#controlsPanel {
+			width: 260px;
+			height: 900px;
+			background: #111;
+			border: 2px solid #2f2f2f;
+			box-shadow: 0 0 20px rgba(0,0,0,0.5);
+			padding: 16px;
+			box-sizing: border-box;
+			display: flex;
+			flex-direction: column;
+			gap: 12px;
+		}
+		#controlsPanel h2 {
+			margin: 0 0 6px 0;
+			font-size: 18px;
+			text-align: center;
+		}
+		#controlsPanel .section {
+			background: #1a1a1a;
+			border: 1px solid #2c2c2c;
+			padding: 10px;
+			border-radius: 6px;
+		}
+		#controlsPanel ul {
+			margin: 8px 0 0 0;
+			padding: 0 0 0 16px;
+		}
+		#controlsPanel li {
+			margin: 4px 0;
+		}
+		#controlsPanel .hint {
+			color: #b5b5b5;
+			font-size: 12px;
+		}
+
+		/* Game container */
+		#gameContainer {
+			position: relative;
+			width: 540px;
+			height: 900px;
+			box-shadow: 0 0 20px rgba(0,0,0,0.5);
+			background: black;
+		}
+		canvas {
+			background: #2e8b57;
+		}
+
+		/* HUD overlay */
+		#ui-layer {
+			position: absolute;
+			top: 0;
+			left: 0;
+			width: 100%;
+			height: 100%;
+			pointer-events: none;
+			display: flex;
+			flex-direction: column;
+			justify-content: space-between;
+			padding: 20px;
+			box-sizing: border-box;
+		}
+		#sidePanel {
+			width: 220px;
+			height: 900px;
+			background: #111;
+			border: 2px solid #2f2f2f;
+			box-shadow: 0 0 20px rgba(0,0,0,0.5);
+			padding: 16px;
+			box-sizing: border-box;
+			display: flex;
+			flex-direction: column;
+			gap: 12px;
+		}
+		#sidePanel h2 {
+			margin: 0 0 6px 0;
+			font-size: 18px;
+			text-align: center;
+		}
+		#hudButtons {
+			display: flex;
+			flex-direction: column;
+			gap: 10px;
+		}
+		#settingsBtn {
+			background: #4aa3ff;
+			color: #0b0b0b;
+		}
+		#settingsModal {
+			display: none;
+			background: #111;
+			border: 2px solid #2f2f2f;
+			box-shadow: 0 0 20px rgba(0,0,0,0.5);
+			padding: 16px;
+			border-radius: 6px;
+		}
+		#settingsModal.active {
+			display: block;
+		}
+		.settingsRow {
+			display: flex;
+			flex-direction: column;
+			gap: 6px;
+			margin-top: 10px;
+		}
+		.settingsRow input {
+			padding: 8px;
+			border-radius: 4px;
+			border: 1px solid #2c2c2c;
+			background: #1a1a1a;
+			color: white;
+			font-family: monospace;
+		}
+		.settingsActions {
+			display: flex;
+			gap: 10px;
+			margin-top: 12px;
+		}
+		#savePlayBtn {
+			background: #1e1e1e;
+			color: white;
+			border: 1px solid #2c2c2c;
+		}
+		#nextPlayBtn {
+			display: none;
+			background: #1e1e1e;
+			color: white;
+			border: 1px solid #2c2c2c;
+		}
+		#nextPlayBtn.active {
+			display: block;
+		}
+		#leaderboardPanel {
+			display: flex;
+			flex-direction: column;
+			gap: 8px;
+		}
+		#leaderboardList {
+			list-style: none;
+			margin: 0;
+			padding: 0;
+			max-height: 200px;
+			overflow-y: auto;
+		}
+		#leaderboardList li {
+			font-size: 12px;
+			padding: 4px 0;
+			border-bottom: 1px solid #2c2c2c;
+		}
+		#scoreNameInput {
+			padding: 8px;
+			border-radius: 4px;
+			border: 1px solid #2c2c2c;
+			background: #1a1a1a;
+			color: white;
+			font-family: monospace;
+		}
+		#submitScoreBtn {
+			background: #1e1e1e;
+			color: white;
+			border: 1px solid #2c2c2c;
+		}
+		h1 {
+			margin: 0;
+			text-shadow: 2px 2px black;
+		}
+		#timer {
+			font-size: 40px;
+			color: yellow;
+			font-weight: bold;
+		}
+		button {
+			pointer-events: auto;
+			padding: 10px 20px;
+			cursor: pointer;
+			font-size: 16px;
+			background: orange;
+			border: none;
+			font-weight: bold;
+		}
+	</style>
 </head>
 <body>
 
+<!-- Layout -->
 <div id="layout">
-    <aside id="controlsPanel">
-        <h2>CONTROLS</h2>
-        <div class="section">
-            <div><strong>Prep</strong></div>
-            <div>Drag blue players to draw routes.</div>
-        </div>
-        <div class="section">
-            <div><strong>Throw</strong></div>
-            <div>Press 1–5 to pass. Hold to lob.</div>
-            <ul id="receiverList"></ul>
-            <div class="hint">Numbers map to the labeled receivers on the field.</div>
-        </div>
-        <div class="section">
-            <div><strong>Snap</strong></div>
-            <div>Click SNAP BALL to start the play.</div>
-        </div>
-        <div class="section" style="text-align:center;">
-            <a class="linkButton" href="football.html">Open Single-File Version</a>
-        </div>
-    </aside>
+	<!-- Controls Panel -->
+	<aside id="controlsPanel">
+		<h2>CONTROLS</h2>
+		<div class="section">
+			<div><strong>Prep</strong></div>
+			<div>Drag blue players to draw routes.</div>
+		</div>
+		<div class="section">
+			<div><strong>Throw</strong></div>
+			<div>Press 1–6 to pass. Hold to lob.</div>
+			<ul id="receiverList"></ul>
+			<div class="hint">Numbers map to the labeled receivers on the field.</div>
+		</div>
+		<div class="section">
+			<div><strong>Snap</strong></div>
+			<div>Click SNAP BALL to start the play.</div>
+		</div>
+	</aside>
 
-    <div id="gameContainer">
-        <canvas id="gameCanvas" width="540" height="900"></canvas>
+	<!-- Game Container -->
+	<div id="gameContainer">
+		<canvas id="gameCanvas" width="540" height="900"></canvas>
 
-        <div id="ui-layer">
-            <div style="text-align:center;">
-                <h1>POCKET BOWL</h1>
-                <div id="timer">PREP: 5</div>
-            </div>
-            <div style="text-align:center;">
-                <button id="snapBtn" tabindex="-1" onclick="snapBall()">SNAP BALL</button>
-            </div>
-        </div>
-    </div>
+		<!-- HUD -->
+		<div id="ui-layer">
+			<div style="text-align:center;">
+				<h1>POCKET BOWL</h1>
+				<div id="timer">PREP: 5</div>
+			</div>
+		</div>
+	</div>
+
+	<!-- Right Side Buttons Panel -->
+	<aside id="sidePanel">
+		<h2>GAME</h2>
+		<div id="hudButtons">
+			<button id="snapBtn" tabindex="-1">SNAP BALL</button>
+			<button id="pauseBtn" tabindex="-1">PAUSE</button>
+			<button id="nextPlayBtn" tabindex="-1">NEXT PLAY</button>
+			<button id="settingsBtn" tabindex="-1">GAME SETTINGS</button>
+			<button id="resetBtn" tabindex="-1">REFRESH PAGE</button>
+		</div>
+		<div id="downPanel" class="section">
+			<div><strong>DOWN & DISTANCE</strong></div>
+			<div id="downLabel">Down: 1</div>
+			<div id="ytgLabel">Yards to Go: 10</div>
+			<div id="ballLabel">Ball: 25</div>
+			<div id="scoreLabel">Score: 0</div>
+		</div>
+		<div id="leaderboardPanel" class="section">
+			<div><strong>LEADERBOARD</strong></div>
+			<ul id="leaderboardList"></ul>
+			<input id="scoreNameInput" type="text" placeholder="Your name" maxlength="16" />
+			<button id="submitScoreBtn" type="button">SUBMIT SCORE</button>
+			<div class="hint">Top 10 by score.</div>
+		</div>
+		<div id="settingsModal">
+			<div><strong>Settings</strong></div>
+			<div class="settingsRow">
+				<label for="yardLineInput">Start play at which yard line? (0-100)</label>
+				<input id="yardLineInput" type="number" min="0" max="100" value="25" />
+			</div>
+			<div class="settingsRow">
+				<label for="playNameInput">Name your play</label>
+				<input id="playNameInput" type="text" placeholder="My Play" />
+			</div>
+			<div class="settingsActions">
+				<button id="saveSettingsBtn" type="button">Save Yard Line</button>
+				<button id="savePlayBtn" type="button">Save Last Play</button>
+			</div>
+		</div>
+	</aside>
 </div>
 
-<script src="pieces.js?v=3"></script>
-<script src="functionality.js?v=3"></script>
-<script src="football.js?v=3"></script>
-<script src="controls.js?v=3"></script>
+<!-- HUD Button Logic (Step 1 only) -->
+<script>
+	const pauseBtn = document.getElementById("pauseBtn");
+	const resetBtn = document.getElementById("resetBtn");
+	const settingsBtn = document.getElementById("settingsBtn");
+	const settingsModal = document.getElementById("settingsModal");
+	const yardLineInput = document.getElementById("yardLineInput");
+	const playNameInput = document.getElementById("playNameInput");
+	const saveSettingsBtn = document.getElementById("saveSettingsBtn");
+	const savePlayBtn = document.getElementById("savePlayBtn");
+	const timerLabel = document.getElementById("timer");
+	const downLabel = document.getElementById("downLabel");
+	const ytgLabel = document.getElementById("ytgLabel");
+	const ballLabel = document.getElementById("ballLabel");
+	const scoreLabel = document.getElementById("scoreLabel");
+	const nextPlayBtn = document.getElementById("nextPlayBtn");
+	const scoreNameInput = document.getElementById("scoreNameInput");
+	const submitScoreBtn = document.getElementById("submitScoreBtn");
+	let paused = false;
+	window.retryState = window.retryState ?? {
+		prepPhase: true,
+		gameActive: false,
+		isRouting: false,
+		isPaused: false
+	};
+	const storedYard = localStorage.getItem("retry-yard-line");
+	if (storedYard !== null) {
+		yardLineInput.value = storedYard;
+	} else {
+		localStorage.setItem("retry-yard-line", String(yardLineInput.value));
+	}
+	window.downsState = window.downsState ?? {
+		down: 1,
+		lineToGainY: null,
+		ballSpotY: null,
+		playEnded: false,
+		gameOver: false
+	};
+	window.gameStats = window.gameStats ?? {
+		score: 0,
+		touchdowns: 0
+	};
+	window.updateDownsPanel = () => {
+		if (!downLabel || !ytgLabel || !ballLabel) return;
+		const lineY = window.downsState.ballSpotY ?? getLineOfScrimmageY();
+		const ytg = window.downsState.lineToGainY === null ? 10 : Math.max(0, Math.round((lineY - window.downsState.lineToGainY) / pixelsPerYard));
+		downLabel.textContent = `Down: ${window.downsState.down}`;
+		ytgLabel.textContent = `Yards to Go: ${ytg}`;
+		ballLabel.textContent = `Ball: ${Math.round(yToYardLine(lineY))}`;
+		if (scoreLabel) scoreLabel.textContent = `Score: ${window.gameStats.score}`;
+	};
+
+	function setNextPlayVisible(visible) {
+		if (!nextPlayBtn) return;
+		nextPlayBtn.classList.toggle("active", visible);
+	}
+
+	function setSubmitEnabled(enabled) {
+		if (submitScoreBtn) submitScoreBtn.disabled = !enabled;
+		if (scoreNameInput) scoreNameInput.disabled = !enabled;
+	}
+
+	pauseBtn.addEventListener("click", () => {
+		paused = !paused;
+		pauseBtn.textContent = paused ? "RESUME" : "PAUSE";
+		timerLabel.textContent = paused ? "PAUSED" : "PREP: 5";
+		window.retryState.isPaused = paused;
+		if (typeof window.resetFrameTime === "function") {
+			window.resetFrameTime();
+		}
+	});
+
+	resetBtn.addEventListener("click", () => {
+		window.location.reload();
+	});
+
+	const snapBtn = document.getElementById("snapBtn");
+	if (snapBtn) {
+		snapBtn.addEventListener("click", () => {
+			if (window.retryState.isPaused) return;
+			if (window.downsState.gameOver) return;
+			window.retryState.prepPhase = false;
+			window.retryState.gameActive = true;
+			timerLabel.textContent = "GO!";
+			window.downsState.playEnded = false;
+			setNextPlayVisible(false);
+			const losY = getLineOfScrimmageY();
+			if (window.downsState.lineToGainY === null || window.downsState.ballSpotY === null) {
+				window.downsState.ballSpotY = losY;
+				window.downsState.lineToGainY = losY - (10 * pixelsPerYard);
+			}
+			window.updateDownsPanel();
+			if (typeof window.resetFrameTime === "function") {
+				window.resetFrameTime();
+			}
+		});
+	}
+
+	if (nextPlayBtn) {
+		nextPlayBtn.addEventListener("click", () => {
+			if (window.downsState.gameOver) return;
+			const spotY = window.downsState.ballSpotY ?? getLineOfScrimmageY();
+			const yardLine = Math.round(yToYardLine(spotY));
+			localStorage.setItem("retry-yard-line", String(yardLine));
+			yardLineInput.value = String(yardLine);
+			applyFormationToLine(yardLineToY(yardLine));
+			roster.forEach(player => player.reset());
+			window.retryState.prepPhase = true;
+			window.retryState.gameActive = false;
+			window.retryState.isRouting = false;
+			window.downsState.playEnded = false;
+			setNextPlayVisible(false);
+			if (timerLabel) timerLabel.textContent = "PREP: 5";
+			if (typeof window.resetFrameTime === "function") {
+				window.resetFrameTime();
+			}
+		});
+	}
+
+	settingsBtn.addEventListener("click", () => {
+		settingsModal.classList.toggle("active");
+	});
+
+	saveSettingsBtn.addEventListener("click", () => {
+		const parsed = Number(yardLineInput.value);
+		if (!Number.isNaN(parsed)) {
+			const clamped = Math.max(0, Math.min(100, parsed));
+			localStorage.setItem("retry-yard-line", String(clamped));
+			yardLineInput.value = String(clamped);
+			if (typeof applyFormationToLine === "function") {
+				applyFormationToLine(yardLineToY(clamped));
+			}
+			snapLocked = false;
+		}
+	});
+
+
+	savePlayBtn.addEventListener("click", () => {
+		const playName = playNameInput.value.trim();
+		if (!playName) return;
+		const yardLine = Number(localStorage.getItem("retry-yard-line") ?? "25");
+		const payload = {
+			name: playName,
+			yardLine,
+			roster: typeof roster !== "undefined" ? roster.map(p => ({
+				id: p.id,
+				team: p.team,
+				role: p.role,
+				x: p.x,
+				y: p.y,
+				path: p.path ?? []
+			})) : [],
+			savedAt: new Date().toISOString()
+		};
+		localStorage.setItem(`retry-play-${playName}`, JSON.stringify(payload));
+		localStorage.setItem("retry-last-play", playName);
+		playNameInput.value = "";
+	});
+</script>
+
+<script type="module">
+	import { initializeApp } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-app.js";
+	import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-analytics.js";
+	import { getFirestore, collection, addDoc, serverTimestamp, query, orderBy, limit, getDocs } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-firestore.js";
+
+	const firebaseConfig = {
+		apiKey: "AIzaSyCrMtnY0hXlZwpGAib2MmiOmyHRUk_hDc4",
+		authDomain: "file-transfer-c98a2.firebaseapp.com",
+		projectId: "file-transfer-c98a2",
+		storageBucket: "file-transfer-c98a2.firebasestorage.app",
+		messagingSenderId: "945533109103",
+		appId: "1:945533109103:web:7f98391abdab148af9de9a",
+		measurementId: "G-P2YXP42K48"
+	};
+
+	const app = initializeApp(firebaseConfig);
+	try {
+		getAnalytics(app);
+	} catch (error) {
+		console.warn("Analytics unavailable:", error);
+	}
+
+	const db = getFirestore(app);
+	const leaderboardList = document.getElementById("leaderboardList");
+	const scoreNameInput = document.getElementById("scoreNameInput");
+	const submitScoreBtn = document.getElementById("submitScoreBtn");
+
+	async function refreshLeaderboard() {
+		if (!leaderboardList) return;
+		leaderboardList.innerHTML = "<li>Loading...</li>";
+		try {
+			const leaderboardQuery = query(
+				collection(db, "leaderboard"),
+				orderBy("score", "desc"),
+				orderBy("createdAt", "asc"),
+				limit(10)
+			);
+			const snapshot = await getDocs(leaderboardQuery);
+			leaderboardList.innerHTML = "";
+			if (snapshot.empty) {
+				leaderboardList.innerHTML = "<li>No scores yet.</li>";
+				return;
+			}
+			let rank = 1;
+			snapshot.forEach(doc => {
+				const data = doc.data();
+				const name = String(data.name ?? "Anonymous").slice(0, 16);
+				const score = Number(data.score ?? 0);
+				const item = document.createElement("li");
+				item.textContent = `${rank}. ${name} — ${score}`;
+				leaderboardList.appendChild(item);
+				rank += 1;
+			});
+		} catch (error) {
+			leaderboardList.innerHTML = "<li>Unable to load scores.</li>";
+			console.error(error);
+		}
+	}
+
+	async function submitScore() {
+		if (!submitScoreBtn || submitScoreBtn.disabled) return;
+		const name = scoreNameInput?.value.trim() ?? "";
+		if (!name) return;
+		const score = Number(window.gameStats?.score ?? 0);
+		try {
+			submitScoreBtn.disabled = true;
+			await addDoc(collection(db, "leaderboard"), {
+				name: name.slice(0, 16),
+				score,
+				createdAt: serverTimestamp()
+			});
+			localStorage.setItem("retry-player-name", name.slice(0, 16));
+			await refreshLeaderboard();
+		} catch (error) {
+			console.error(error);
+		} finally {
+			submitScoreBtn.disabled = false;
+		}
+	}
+
+	if (scoreNameInput) {
+		const storedName = localStorage.getItem("retry-player-name");
+		if (storedName) scoreNameInput.value = storedName;
+	}
+	if (submitScoreBtn) {
+		submitScoreBtn.addEventListener("click", submitScore);
+	}
+
+	refreshLeaderboard();
+</script>
+
+<!-- Core Data Models (Step 2) -->
+<script>
+	const FIELD_WIDTH = 540;
+	const FIELD_HEIGHT = 900;
+	const ENDZONE_HEIGHT = 50;
+	const YARDS_PER_FIELD = 100;
+	const DEFAULT_YARD_LINE =25;
+	const FIELD_TOP_Y = ENDZONE_HEIGHT;
+	const FIELD_BOTTOM_Y = FIELD_HEIGHT - ENDZONE_HEIGHT;
+	const FIELD_PLAY_HEIGHT = FIELD_BOTTOM_Y - FIELD_TOP_Y;
+	const LINE_COLOR = "rgba(255,255,255,0.3)";
+	const LOS_COLOR = "rgba(255,255,255,0.8)";
+
+	class Player {
+		constructor(id, x, y, team, role) {
+			this.id = id;
+			this.x = x;
+			this.y = y;
+			this.startX = x;
+			this.startY = y;
+			this.baseX = x;
+			this.baseYOffset = 0;
+			this.team = team; // "offense" or "defense"
+			this.role = role; // "QB", "WR", "LB"
+			this.path = [];
+			this.pathIndex = 0;
+			this.speedYps = 6.7; // yards per second
+			this.hasBall = (role === "QB");
+			this.isDead = false;
+		}
+
+		reset() {
+			this.x = this.startX;
+			this.y = this.startY;
+			this.path = [];
+			this.pathIndex = 0;
+			this.isDead = false;
+			this.hasBall = (this.role === "QB");
+		}
+	}
+
+	let roster = [];
+
+	const SPEED_YPS = {
+		QB: 5.8,
+		RB: 6.4,
+		WR: 6.7,
+		SL: 6.6,
+		TE: 6.1,
+		OL: 5.6,
+		MLB: 6.0,
+		LB: 6.1,
+		DL: 5.4,
+		CB: 6.6,
+		S: 6.4
+	};
+	const SPEED_MULTIPLIER = 1.15; // edit this number to tweak overall speed! - master number 
+
+	function buildRoster() {
+		let nextId = 1;
+		const players = [];
+		const baseLineCount = 5;
+		const lineCount = baseLineCount;
+		const lineLeft = 170;
+		const lineRight = 370;
+		const teInset = 35;
+		const wrInset = 80;
+		const clampX = (value) => Math.max(40, Math.min(500, value));
+
+		const lineXs = [];
+		for (let i = 0; i < lineCount; i += 1) {
+			const t = lineCount === 1 ? 0.5 : i / (lineCount - 1);
+			lineXs.push(lineLeft + (lineRight - lineLeft) * t);
+		}
+
+		const teLeftX = clampX(lineLeft - teInset);
+		const teRightX = clampX(lineRight + teInset);
+		const wrLeftX = clampX(lineLeft - wrInset);
+		const wrRightX = clampX(lineRight + wrInset);
+
+		players.push(new Player(nextId++, 270, 760, "offense", "QB"));
+		players.push(new Player(nextId++, 270, 760, "offense", "RB"));
+		players.push(new Player(nextId++, wrLeftX, 760, "offense", "WR"));
+		players.push(new Player(nextId++, wrRightX, 760, "offense", "WR"));
+		players.push(new Player(nextId++, teLeftX, 760, "offense", "TE"));
+		players.push(new Player(nextId++, teRightX, 760, "offense", "TE"));
+		lineXs.forEach(x => {
+			players.push(new Player(nextId++, x, 760, "offense", "OL"));
+		});
+
+		const defenseLineXs = lineXs.slice();
+		const lbLeftX = clampX(teLeftX);
+		const lbRightX = clampX(teRightX);
+
+		players.push(new Player(nextId++, 270, 700, "defense", "MLB"));
+		players.push(new Player(nextId++, lbLeftX, 700, "defense", "LB"));
+		players.push(new Player(nextId++, lbRightX, 700, "defense", "LB"));
+		players.push(new Player(nextId++, wrLeftX, 620, "defense", "CB"));
+		players.push(new Player(nextId++, wrRightX, 620, "defense", "CB"));
+		players.push(new Player(nextId++, 270, 580, "defense", "S"));
+		defenseLineXs.forEach(x => {
+			players.push(new Player(nextId++, x, 700, "defense", "DL"));
+		});
+		return players;
+	}
+
+	function applySpeeds() {
+		roster.forEach(player => {
+			player.speedYps = (SPEED_YPS[player.role] ?? 6.0) * SPEED_MULTIPLIER;
+		});
+	}
+
+	function yardLineToY(yardLine) {
+		const clamped = Math.max(0, Math.min(100, yardLine));
+		const percent = clamped / YARDS_PER_FIELD;
+		return FIELD_BOTTOM_Y - (percent * FIELD_PLAY_HEIGHT);
+	}
+
+	function yToYardLine(yPos) {
+		const clampedY = Math.max(FIELD_TOP_Y, Math.min(FIELD_BOTTOM_Y, yPos));
+		const percent = (FIELD_BOTTOM_Y - clampedY) / FIELD_PLAY_HEIGHT;
+		return percent * YARDS_PER_FIELD;
+	}
+
+	function setFormationOffsets() {
+		const roleOffsetY = {
+			QB: 70,
+			RB: 120,
+			WR: 20,
+			SL: 20,
+			TE: 20,
+			OL: 20,
+			DL: -40,
+			LB: -80,
+			MLB: -90,
+			CB: -140,
+			S: -200
+		};
+
+		roster.forEach(player => {
+			player.baseX = player.x;
+			const offset = roleOffsetY[player.role] ?? 0;
+			player.baseYOffset = offset;
+		});
+	}
+
+	function applyFormationToLine(lineY) {
+		roster.forEach(player => {
+			player.x = player.baseX;
+			player.y = lineY + player.baseYOffset;
+			player.startX = player.x;
+			player.startY = player.y;
+		});
+	}
+
+	const DEFAULT_LINE_OF_SCRIMMAGE_Y = yardLineToY(DEFAULT_YARD_LINE);
+
+	function getLineOfScrimmageY() {
+		const stored = Number(localStorage.getItem("retry-yard-line") ?? DEFAULT_YARD_LINE);
+		return yardLineToY(stored);
+	}
+
+	function initializeRoster() {
+		roster = buildRoster();
+		setFormationOffsets();
+		applyFormationToLine(getLineOfScrimmageY());
+		applySpeeds();
+	}
+
+	initializeRoster();
+	window.downsState.ballSpotY = getLineOfScrimmageY();
+	window.downsState.lineToGainY = window.downsState.ballSpotY - (10 * pixelsPerYard);
+	if (typeof window.updateDownsPanel === "function") {
+		window.updateDownsPanel();
+	}
+	setSubmitEnabled(false);
+
+	console.log("[Step 2] Roster initialized:", roster);
+</script>
+
+<!-- Render Loop (Step 3) -->
+<script>
+	const canvas = document.getElementById("gameCanvas");
+	const ctx = canvas.getContext("2d");
+	const state = window.retryState ?? (window.retryState = {
+		prepPhase: true,
+		gameActive: false,
+		isRouting: false,
+		isPaused: false
+	});
+	let selectedPlayer = null;
+	let lastFrameTime = null;
+	const pixelsPerYard = FIELD_PLAY_HEIGHT / YARDS_PER_FIELD;
+	let ballCarrier = roster.find(player => player.role === "QB") ?? roster[0];
+	let ballFlight = null;
+	const LOB_HOLD_MS = 400;
+	const THROW_KEYS_MAX = 6;
+	const keyHoldStart = {};
+	const collisionDistance = 30;
+	const tackleDistance = 22;
+	let defenseAssigned = false;
+	const tackleHoldSeconds = 1.0;
+	const tackleContact = new Map();
+	const defenseStunUntil = new Map();
+	const DEFENDER_STUN_MS = 1000;
+
+	window.onRosterChanged = () => {
+		selectedPlayer = null;
+		ballFlight = null;
+		ballCarrier = roster.find(player => player.role === "QB") ?? roster[0];
+		roster.forEach(player => {
+			player.hasBall = (player === ballCarrier);
+			player.pathIndex = 0;
+		});
+	};
+
+	function handleInput(type, x, y) {
+		if (!state.prepPhase && !state.gameActive) return;
+		if (type === "start") {
+			roster.forEach(player => {
+				if (player.team !== "offense") return;
+				const dist = Math.hypot(player.x - x, player.y - y);
+				if (dist < 30) {
+					state.isRouting = true;
+					selectedPlayer = player;
+					player.path = [];
+					player.path.push({ x: player.x, y: player.y });
+					player.path.push({ x, y });
+					player.pathIndex = 0;
+				}
+			});
+		} else if (type === "move" && selectedPlayer) {
+			selectedPlayer.path.push({ x, y });
+		} else if (type === "end") {
+			selectedPlayer = null;
+			state.isRouting = false;
+		}
+	}
+
+	function getPos(event, type) {
+		const rect = canvas.getBoundingClientRect();
+		const point = event.touches ? event.touches[0] : event;
+		const x = point.clientX - rect.left;
+		const y = point.clientY - rect.top;
+		handleInput(type, x, y);
+	}
+
+	canvas.addEventListener("mousedown", e => getPos(e, "start"));
+	canvas.addEventListener("mousemove", e => getPos(e, "move"));
+	canvas.addEventListener("mouseup", e => getPos(e, "end"));
+	canvas.addEventListener("touchstart", e => getPos(e, "start"));
+	canvas.addEventListener("touchmove", e => getPos(e, "move"));
+	canvas.addEventListener("touchend", e => getPos(e, "end"));
+
+	window.resetFrameTime = () => {
+		lastFrameTime = null;
+	};
+
+	function getThrowTargets() {
+		const validRoles = new Set(["WR", "TE", "RB"]);
+		const targets = roster.filter(player => player.team === "offense" && validRoles.has(player.role));
+		const roleOrder = { WR: 1, TE: 2, RB: 3 };
+		targets.sort((a, b) => {
+			const roleDiff = (roleOrder[a.role] ?? 9) - (roleOrder[b.role] ?? 9);
+			if (roleDiff !== 0) return roleDiff;
+			return a.x - b.x;
+		});
+		const qb = roster.find(player => player.role === "QB");
+		if (ballCarrier && ballCarrier.role !== "QB" && qb && qb !== ballCarrier) {
+			targets.push(qb);
+		}
+		return targets;
+	}
+
+	function canThrowFromPosition() {
+		if (!ballCarrier) return false;
+		const losY = getLineOfScrimmageY();
+		return ballCarrier.y >= (losY - 2);
+	}
+
+	function getInterceptorOnLine(start, end) {
+		const threshold = 20;
+		let closest = null;
+		let closestDist = Infinity;
+		roster.forEach(def => {
+			if (def.team !== "defense") return;
+			if (def.role === "DL") return;
+			const dist = pointToSegmentDistance(def.x, def.y, start.x, start.y, end.x, end.y);
+			if (dist < threshold && dist < closestDist) {
+				closestDist = dist;
+				closest = def;
+			}
+		});
+		return closest;
+	}
+
+	function pointToSegmentDistance(px, py, x1, y1, x2, y2) {
+		const dx = x2 - x1;
+		const dy = y2 - y1;
+		const lenSq = dx * dx + dy * dy;
+		if (lenSq === 0) return Math.hypot(px - x1, py - y1);
+		let t = ((px - x1) * dx + (py - y1) * dy) / lenSq;
+		t = Math.max(0, Math.min(1, t));
+		const projX = x1 + t * dx;
+		const projY = y1 + t * dy;
+		return Math.hypot(px - projX, py - projY);
+	}
+
+	function attemptThrow(targetPlayer, isLob) {
+		if (!state.gameActive || state.isPaused) return;
+		if (!ballCarrier || ballCarrier.team !== "offense") return;
+		if (!targetPlayer || targetPlayer.team !== "offense") return;
+		if (ballFlight?.active) return;
+		const isBackward = targetPlayer.y > (ballCarrier.y + 2);
+		if (!isBackward && !canThrowFromPosition()) return;
+		if (!isBackward && targetPlayer.role === "QB" && targetPlayer.y < (getLineOfScrimmageY() - 2)) return;
+
+		const start = { x: ballCarrier.x, y: ballCarrier.y };
+		const end = { x: targetPlayer.x, y: targetPlayer.y };
+		ballCarrier.hasBall = false;
+		const interceptor = !isLob ? getInterceptorOnLine(start, end) : null;
+
+		ballFlight = {
+			active: true,
+			lob: isLob,
+			startX: start.x,
+			startY: start.y,
+			x: start.x,
+			y: start.y,
+			target: targetPlayer,
+			interceptTarget: interceptor,
+			progress: 0,
+			speed: isLob ? 0.012 : 0.03,
+			arcHeight: isLob ? 120 : 0
+		};
+
+		ballCarrier = null;
+	}
+
+	function advanceBallFlight() {
+		if (!ballFlight?.active) return;
+		const progress = Math.min(1, ballFlight.progress + ballFlight.speed);
+		ballFlight.progress = progress;
+		const activeTarget = ballFlight.interceptTarget ?? ballFlight.target;
+		const endX = activeTarget.x;
+		const endY = activeTarget.y;
+		const arcOffset = ballFlight.lob ? Math.sin(Math.PI * progress) * ballFlight.arcHeight : 0;
+		ballFlight.x = lerp(ballFlight.startX, endX, progress);
+		ballFlight.y = lerp(ballFlight.startY, endY, progress) - arcOffset;
+		if (progress >= 1) {
+			if (ballFlight.interceptTarget) {
+				ballFlight.interceptTarget.hasBall = true;
+				ballCarrier = ballFlight.interceptTarget;
+				state.gameActive = false;
+				const timer = document.getElementById("timer");
+				if (timer) timer.textContent = "INTERCEPTED";
+			} else {
+				ballFlight.target.hasBall = true;
+				ballCarrier = ballFlight.target;
+			}
+			ballFlight.active = false;
+		}
+	}
+
+	function checkTouchdown() {
+		if (!state.gameActive || state.isPaused) return;
+		if (!ballCarrier || ballCarrier.team !== "offense") return;
+		if (ballCarrier.y <= FIELD_TOP_Y) {
+			state.gameActive = false;
+			window.downsState.playEnded = true;
+			const timer = document.getElementById("timer");
+			if (timer) timer.textContent = "TOUCHDOWN!";
+			window.gameStats.touchdowns += 1;
+			window.gameStats.score += 7;
+			window.downsState.down = 1;
+			window.downsState.ballSpotY = getLineOfScrimmageY();
+			window.downsState.lineToGainY = window.downsState.ballSpotY - (10 * pixelsPerYard);
+			window.updateDownsPanel();
+			setNextPlayVisible(true);
+		}
+	}
+
+	function lerp(a, b, t) {
+		return a + (b - a) * t;
+	}
+
+	function handleThrowKeyDown(key) {
+		if (!state.gameActive || state.isPaused) return;
+		if (keyHoldStart[key]) return;
+		keyHoldStart[key] = Date.now();
+	}
+
+	function handleThrowKeyUp(key) {
+		if (!state.gameActive || state.isPaused) return;
+		const started = keyHoldStart[key];
+		if (!started) return;
+		delete keyHoldStart[key];
+		const index = Number(key) - 1;
+		if (Number.isNaN(index) || index < 0 || index >= THROW_KEYS_MAX) return;
+		const targets = getThrowTargets();
+		const target = targets[index];
+		if (!target) return;
+		const heldMs = Date.now() - started;
+		attemptThrow(target, heldMs >= LOB_HOLD_MS);
+	}
+
+	window.addEventListener("keydown", event => {
+		if (event.repeat) return;
+		if (event.key >= "1" && event.key <= String(THROW_KEYS_MAX)) {
+			event.preventDefault();
+			handleThrowKeyDown(event.key);
+		}
+	});
+
+	window.addEventListener("keyup", event => {
+		if (event.key >= "1" && event.key <= String(THROW_KEYS_MAX)) {
+			event.preventDefault();
+			handleThrowKeyUp(event.key);
+		}
+	});
+
+	function updateReceiverList() {
+		const list = document.getElementById("receiverList");
+		if (!list) return;
+		const targets = getThrowTargets();
+		list.innerHTML = "";
+		const roleCounts = {};
+		targets.slice(0, THROW_KEYS_MAX).forEach((player, index) => {
+			roleCounts[player.role] = (roleCounts[player.role] ?? 0) + 1;
+			const label = roleCounts[player.role] > 1 ? `${player.role}${roleCounts[player.role]}` : player.role;
+			const item = document.createElement("li");
+			const button = document.createElement("button");
+			button.type = "button";
+			button.tabIndex = -1;
+			button.textContent = `${index + 1}: ${label}`;
+			let holdStart = 0;
+			button.addEventListener("pointerdown", () => {
+				holdStart = Date.now();
+			});
+			button.addEventListener("pointerup", () => {
+				const heldMs = Date.now() - holdStart;
+				attemptThrow(player, heldMs >= LOB_HOLD_MS);
+			});
+			button.addEventListener("pointerleave", () => {
+				holdStart = 0;
+			});
+			item.appendChild(button);
+			list.appendChild(item);
+		});
+	}
+
+	function getOffenseByRole(role) {
+		return roster.filter(player => player.team === "offense" && player.role === role);
+	}
+
+	function getDefenseByRole(role) {
+		return roster.filter(player => player.team === "defense" && player.role === role);
+	}
+
+	function assignDefenseTargets() {
+		const assignments = new Map();
+		const wrs = getOffenseByRole("WR").sort((a, b) => a.x - b.x);
+		const tes = getOffenseByRole("TE").sort((a, b) => a.x - b.x);
+		const rbs = getOffenseByRole("RB").sort((a, b) => a.x - b.x);
+		const cbs = getDefenseByRole("CB").sort((a, b) => a.x - b.x);
+		const lbs = getDefenseByRole("LB").sort((a, b) => a.x - b.x);
+
+		if (cbs[0] && wrs[0]) assignments.set(cbs[0].id, wrs[0].id);
+		if (cbs[1] && wrs[1]) assignments.set(cbs[1].id, wrs[1].id);
+
+		const lbTargets = [...tes, ...rbs].sort((a, b) => a.x - b.x);
+		if (lbs[0] && lbTargets[0]) assignments.set(lbs[0].id, lbTargets[0].id);
+		if (lbs[1] && lbTargets[lbTargets.length - 1]) assignments.set(lbs[1].id, lbTargets[lbTargets.length - 1].id);
+
+		return assignments;
+	}
+
+	function moveDefense(deltaSeconds) {
+		if (!state.gameActive || state.isRouting || state.isPaused) return;
+		if (!defenseAssigned) {
+			defenseAssigned = true;
+		}
+		const now = performance.now();
+		const assignments = assignDefenseTargets();
+		const losY = getLineOfScrimmageY();
+		const qb = roster.find(player => player.role === "QB" && player.team === "offense");
+		const chaseTarget = ballCarrier ?? ballFlight?.target ?? qb;
+
+		roster.forEach(defender => {
+			if (defender.team !== "defense") return;
+			const stunnedUntil = defenseStunUntil.get(defender.id) ?? 0;
+			if (stunnedUntil > now) return;
+			let target = null;
+			if (defender.role === "CB" || defender.role === "LB") {
+				const assignedId = assignments.get(defender.id);
+				target = roster.find(player => player.id === assignedId) ?? null;
+			}
+			if (defender.role === "MLB") {
+				target = chaseTarget;
+			}
+			if (defender.role === "S") {
+				target = chaseTarget;
+			}
+			if (defender.role === "DL") {
+				target = qb ?? chaseTarget;
+			}
+			if (!target) {
+				target = { x: defender.x, y: losY - 60 };
+			}
+
+			const dx = target.x - defender.x;
+			const dy = target.y - defender.y;
+			const dist = Math.hypot(dx, dy);
+			if (dist === 0) return;
+			const speedPx = defender.speedYps * pixelsPerYard;
+			const step = speedPx * deltaSeconds;
+			if (dist <= step) {
+				defender.x = target.x;
+				defender.y = target.y;
+			} else {
+				defender.x += (dx / dist) * step;
+				defender.y += (dy / dist) * step;
+			}
+		});
+	}
+
+	function checkTackle() {
+		if (!state.gameActive || state.isPaused) return;
+		if (!ballCarrier || ballCarrier.team !== "offense") return;
+		const now = performance.now();
+		const activeIds = new Set();
+		const tackled = roster.some(defender => {
+			if (defender.team !== "defense") return false;
+			const dist = Math.hypot(defender.x - ballCarrier.x, defender.y - ballCarrier.y);
+			if (dist <= tackleDistance) {
+				activeIds.add(defender.id);
+				const startedAt = tackleContact.get(defender.id) ?? now;
+				tackleContact.set(defender.id, startedAt);
+				return (now - startedAt) / 1000 >= tackleHoldSeconds;
+			}
+			return false;
+		});
+		tackleContact.forEach((_, id) => {
+			if (!activeIds.has(id)) {
+				tackleContact.delete(id);
+			}
+		});
+		if (tackled) {
+			state.gameActive = false;
+			window.downsState.playEnded = true;
+			window.downsState.ballSpotY = ballCarrier.y;
+			if (window.downsState.ballSpotY <= window.downsState.lineToGainY) {
+				window.downsState.down = 1;
+				window.downsState.lineToGainY = window.downsState.ballSpotY - (10 * pixelsPerYard);
+			} else {
+				if (window.downsState.down >= 4) {
+					window.downsState.gameOver = true;
+				} else {
+					window.downsState.down += 1;
+				}
+			}
+			const timer = document.getElementById("timer");
+			if (timer) timer.textContent = window.downsState.gameOver ? "GAME OVER" : "TACKLED";
+			window.updateDownsPanel();
+			if (window.downsState.gameOver) {
+				setNextPlayVisible(false);
+				setSubmitEnabled(true);
+			} else {
+				setNextPlayVisible(true);
+			}
+		}
+	}
+
+	function drawField() {
+		ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+		ctx.fillStyle = "rgba(0,0,100,0.2)";
+		ctx.fillRect(0, 0, canvas.width, ENDZONE_HEIGHT);
+		ctx.fillRect(0, canvas.height - ENDZONE_HEIGHT, canvas.width, ENDZONE_HEIGHT);
+
+		for (let yard = 0; yard <= 100; yard += 5) {
+			const y = yardLineToY(yard);
+			ctx.strokeStyle = LINE_COLOR;
+			ctx.lineWidth = (yard % 10 === 0) ? 2 : 1;
+			ctx.beginPath();
+			ctx.moveTo(0, y);
+			ctx.lineTo(canvas.width, y);
+			ctx.stroke();
+		}
+
+		ctx.fillStyle = "rgba(255,255,255,0.9)";
+		ctx.font = "12px Arial";
+		ctx.textAlign = "left";
+		for (let yard = 10; yard <= 90; yard += 10) {
+			const label = yard <= 50 ? yard : 100 - yard;
+			const y = yardLineToY(yard);
+			ctx.fillText(String(label), 6, y + 4);
+		}
+
+		const losY = getLineOfScrimmageY();
+		ctx.strokeStyle = LOS_COLOR;
+		ctx.lineWidth = 3;
+		ctx.setLineDash([10, 6]);
+		ctx.beginPath();
+		ctx.moveTo(0, losY);
+		ctx.lineTo(canvas.width, losY);
+		ctx.stroke();
+		ctx.setLineDash([]);
+
+		const firstDownY = window.downsState?.lineToGainY ?? (losY - (10 * pixelsPerYard));
+		ctx.strokeStyle = "#ffd54a";
+		ctx.lineWidth = 2;
+		ctx.beginPath();
+		ctx.moveTo(0, firstDownY);
+		ctx.lineTo(canvas.width, firstDownY);
+		ctx.stroke();
+	}
+
+	function drawPlayers() {
+		roster.forEach(p => {
+			ctx.fillStyle = "rgba(0,0,0,0.5)";
+			ctx.beginPath();
+			ctx.arc(p.x + 2, p.y + 2, 15, 0, Math.PI * 2);
+			ctx.fill();
+
+			let fillColor = p.team === "offense" ? "#0099ff" : "#ff3300";
+			if (p.team === "defense" && p.role === "DL") {
+				fillColor = "#ff6655";
+			}
+			if (p.team === "defense") {
+				const stunnedUntil = defenseStunUntil.get(p.id) ?? 0;
+				if (stunnedUntil > performance.now()) {
+					fillColor = "#9a9a9a";
+				}
+			}
+			ctx.fillStyle = fillColor;
+			ctx.beginPath();
+			ctx.arc(p.x, p.y, 15, 0, Math.PI * 2);
+			ctx.fill();
+
+			if (p.hasBall) {
+				ctx.fillStyle = "brown";
+				ctx.beginPath();
+				ctx.arc(p.x, p.y, 8, 0, Math.PI * 2);
+				ctx.fill();
+			}
+
+			ctx.fillStyle = "white";
+			ctx.font = "10px Arial";
+			ctx.textAlign = "center";
+			ctx.fillText(p.role, p.x, p.y + 4);
+		});
+
+		if (ballFlight?.active) {
+			ctx.fillStyle = ballFlight.lob ? "#d2b48c" : "brown";
+			ctx.beginPath();
+			ctx.arc(ballFlight.x, ballFlight.y, ballFlight.lob ? 7 : 6, 0, Math.PI * 2);
+			ctx.fill();
+		}
+	}
+
+	function drawRoutes() {
+		roster.forEach(player => {
+			if (player.team !== "offense" || player.path.length < 2) return;
+			ctx.beginPath();
+			ctx.strokeStyle = "yellow";
+			ctx.lineWidth = 3;
+			ctx.moveTo(player.path[0].x, player.path[0].y);
+			player.path.forEach(point => {
+				ctx.lineTo(point.x, point.y);
+			});
+			ctx.stroke();
+		});
+	}
+
+	function moveOffense(deltaSeconds) {
+		if (!state.gameActive || state.isRouting || state.isPaused) return;
+		roster.forEach(player => {
+			if (player.team !== "offense") return;
+			if (!player.path || player.path.length < 2) return;
+			if (player.pathIndex >= player.path.length) return;
+			let target = player.path[player.pathIndex];
+			let dx = target.x - player.x;
+			let dy = target.y - player.y;
+			let dist = Math.hypot(dx, dy);
+			if (dist === 0) {
+				player.pathIndex = Math.min(player.pathIndex + 1, player.path.length - 1);
+				target = player.path[player.pathIndex];
+				dx = target.x - player.x;
+				dy = target.y - player.y;
+				dist = Math.hypot(dx, dy);
+				if (dist === 0) return;
+			}
+			const speedPx = player.speedYps * pixelsPerYard;
+			const step = speedPx * deltaSeconds;
+			if (dist <= step) {
+				player.x = target.x;
+				player.y = target.y;
+				player.pathIndex = Math.min(player.pathIndex + 1, player.path.length - 1);
+			} else {
+				player.x += (dx / dist) * step;
+				player.y += (dy / dist) * step;
+			}
+		});
+	}
+
+	function stunDefender(player) {
+		if (!player || player.team !== "defense") return;
+		defenseStunUntil.set(player.id, performance.now() + DEFENDER_STUN_MS);
+	}
+
+	function resolveCollisions() {
+		for (let i = 0; i < roster.length; i += 1) {
+			for (let j = i + 1; j < roster.length; j += 1) {
+				const playerA = roster[i];
+				const playerB = roster[j];
+				const involvesBallCarrier = ballCarrier && (playerA === ballCarrier || playerB === ballCarrier);
+				const dx = playerB.x - playerA.x;
+				const dy = playerB.y - playerA.y;
+				const dist = Math.hypot(dx, dy);
+				if (dist === 0 || dist >= collisionDistance) continue;
+				const overlap = (collisionDistance - dist) / 2;
+				const nx = dx / dist;
+				const ny = dy / dist;
+				stunDefender(playerA);
+				stunDefender(playerB);
+				if (playerA.team === playerB.team) {
+					if (ballCarrier && playerA === ballCarrier) {
+						playerB.x += nx * overlap * 2;
+						playerB.y += ny * overlap * 2;
+					} else if (ballCarrier && playerB === ballCarrier) {
+						playerA.x -= nx * overlap * 2;
+						playerA.y -= ny * overlap * 2;
+					} else {
+						playerA.x -= nx * overlap;
+						playerA.y -= ny * overlap;
+						playerB.x += nx * overlap;
+						playerB.y += ny * overlap;
+					}
+				} else {
+					if (involvesBallCarrier) {
+						continue;
+					}
+					if (playerA.team === "defense") {
+						playerA.x -= nx * overlap * 2;
+						playerA.y -= ny * overlap * 2;
+					} else if (playerB.team === "defense") {
+						playerB.x += nx * overlap * 2;
+						playerB.y += ny * overlap * 2;
+					}
+				}
+			}
+		}
+	}
+
+	function render(timestamp) {
+		if (!lastFrameTime) lastFrameTime = timestamp;
+		const deltaSeconds = Math.min(0.05, (timestamp - lastFrameTime) / 1000);
+		lastFrameTime = timestamp;
+
+		updateReceiverList();
+		advanceBallFlight();
+		moveOffense(deltaSeconds);
+		moveDefense(deltaSeconds);
+		checkTouchdown();
+		checkTackle();
+		resolveCollisions();
+		drawField();
+		drawRoutes();
+		drawPlayers();
+		requestAnimationFrame(render);
+	}
+
+	render(); // going even further back
+</script>
 
 </body>
 </html>
