@@ -366,6 +366,9 @@
 		snapBtn.addEventListener("click", () => {
 			if (window.retryState.isPaused) return;
 			if (window.downsState.gameOver) return;
+			if (typeof window.onRosterChanged === "function") {
+				window.onRosterChanged();
+			}
 			window.retryState.prepPhase = false;
 			window.retryState.gameActive = true;
 			timerLabel.textContent = "GO!";
@@ -392,6 +395,9 @@
 			yardLineInput.value = String(yardLine);
 			applyFormationToLine(yardLineToY(yardLine));
 			roster.forEach(player => player.reset());
+			if (typeof window.onRosterChanged === "function") {
+				window.onRosterChanged();
+			}
 			window.retryState.prepPhase = true;
 			window.retryState.gameActive = false;
 			window.retryState.isRouting = false;
@@ -546,8 +552,10 @@
 	const FIELD_TOP_Y = ENDZONE_HEIGHT;
 	const FIELD_BOTTOM_Y = FIELD_HEIGHT - ENDZONE_HEIGHT;
 	const FIELD_PLAY_HEIGHT = FIELD_BOTTOM_Y - FIELD_TOP_Y;
+	const pixelsPerYard = FIELD_PLAY_HEIGHT / YARDS_PER_FIELD;
 	const LINE_COLOR = "rgba(255,255,255,0.3)";
 	const LOS_COLOR = "rgba(255,255,255,0.8)";
+	window.pixelsPerYard = pixelsPerYard;
 
 	class Player {
 		constructor(id, x, y, team, role) {
@@ -728,7 +736,7 @@
 	});
 	let selectedPlayer = null;
 	let lastFrameTime = null;
-	const pixelsPerYard = FIELD_PLAY_HEIGHT / YARDS_PER_FIELD;
+	const pixelsPerYard = window.pixelsPerYard;
 	let ballCarrier = roster.find(player => player.role === "QB") ?? roster[0];
 	let ballFlight = null;
 	const LOB_HOLD_MS = 400;
