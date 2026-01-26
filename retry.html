@@ -329,11 +329,13 @@
 	};
 	window.updateDownsPanel = () => {
 		if (!downLabel || !ytgLabel || !ballLabel) return;
-		const lineY = window.downsState.ballSpotY ?? getLineOfScrimmageY();
-		const ytg = window.downsState.lineToGainY === null ? 10 : Math.max(0, Math.round((lineY - window.downsState.lineToGainY) / pixelsPerYard));
+		const lineY = window.downsState.ballSpotY ?? (window.getLineOfScrimmageY ? window.getLineOfScrimmageY() : 0);
+		const ytgBase = window.pixelsPerYard ?? 1;
+		const ytg = window.downsState.lineToGainY === null ? 10 : Math.max(0, Math.round((lineY - window.downsState.lineToGainY) / ytgBase));
 		downLabel.textContent = `Down: ${window.downsState.down}`;
 		ytgLabel.textContent = `Yards to Go: ${ytg}`;
-		ballLabel.textContent = `Ball: ${Math.round(yToYardLine(lineY))}`;
+		const yardLine = window.yToYardLine ? window.yToYardLine(lineY) : 0;
+		ballLabel.textContent = `Ball: ${Math.round(yardLine)}`;
 		if (scoreLabel) scoreLabel.textContent = `Score: ${window.gameStats.score}`;
 	};
 
@@ -374,10 +376,11 @@
 			timerLabel.textContent = "GO!";
 			window.downsState.playEnded = false;
 			setNextPlayVisible(false);
-			const losY = getLineOfScrimmageY();
+			const losY = window.getLineOfScrimmageY ? window.getLineOfScrimmageY() : 0;
 			if (window.downsState.lineToGainY === null || window.downsState.ballSpotY === null) {
 				window.downsState.ballSpotY = losY;
-				window.downsState.lineToGainY = losY - (10 * pixelsPerYard);
+				const ytgBase = window.pixelsPerYard ?? 1;
+				window.downsState.lineToGainY = losY - (10 * ytgBase);
 			}
 			window.updateDownsPanel();
 			if (typeof window.resetFrameTime === "function") {
@@ -389,11 +392,13 @@
 	if (nextPlayBtn) {
 		nextPlayBtn.addEventListener("click", () => {
 			if (window.downsState.gameOver) return;
-			const spotY = window.downsState.ballSpotY ?? getLineOfScrimmageY();
-			const yardLine = Math.round(yToYardLine(spotY));
+			const spotY = window.downsState.ballSpotY ?? (window.getLineOfScrimmageY ? window.getLineOfScrimmageY() : 0);
+			const yardLine = Math.round(window.yToYardLine ? window.yToYardLine(spotY) : 0);
 			localStorage.setItem("retry-yard-line", String(yardLine));
 			yardLineInput.value = String(yardLine);
-			applyFormationToLine(yardLineToY(yardLine));
+			if (window.applyFormationToLine && window.yardLineToY) {
+				window.applyFormationToLine(window.yardLineToY(yardLine));
+			}
 			roster.forEach(player => player.reset());
 			if (typeof window.onRosterChanged === "function") {
 				window.onRosterChanged();
@@ -420,8 +425,8 @@
 			const clamped = Math.max(0, Math.min(100, parsed));
 			localStorage.setItem("retry-yard-line", String(clamped));
 			yardLineInput.value = String(clamped);
-			if (typeof applyFormationToLine === "function") {
-				applyFormationToLine(yardLineToY(clamped));
+			if (window.applyFormationToLine && window.yardLineToY) {
+				window.applyFormationToLine(window.yardLineToY(clamped));
 			}
 			snapLocked = false;
 		}
@@ -706,6 +711,11 @@
 		return yardLineToY(stored);
 	}
 
+	window.yardLineToY = yardLineToY;
+	window.yToYardLine = yToYardLine;
+	window.getLineOfScrimmageY = getLineOfScrimmageY;
+	window.applyFormationToLine = applyFormationToLine;
+
 	function initializeRoster() {
 		roster = buildRoster();
 		setFormationOffsets();
@@ -736,7 +746,7 @@
 	});
 	let selectedPlayer = null;
 	let lastFrameTime = null;
-	const pixelsPerYard = window.pixelsPerYard;
+	const pixelsPerYard = window.pixelsPerYard ?? (FIELD_PLAY_HEIGHT / YARDS_PER_FIELD);
 	let ballCarrier = roster.find(player => player.role === "QB") ?? roster[0];
 	let ballFlight = null;
 	const LOB_HOLD_MS = 400;
