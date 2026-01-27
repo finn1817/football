@@ -363,6 +363,7 @@
 		snapBtn.addEventListener("click", () => {
 			if (window.retryState.isPaused) return;
 			if (window.downsState.gameOver) return;
+			if (window.downsState.playEnded) return;
 			if (typeof window.onRosterChanged === "function") {
 				window.onRosterChanged();
 			}
