@@ -1261,8 +1261,10 @@
 				const overlap = (collisionDistance - dist) / 2;
 				const nx = dx / dist;
 				const ny = dy / dist;
-				stunDefender(playerA);
-				stunDefender(playerB);
+				if (!involvesBallCarrier) {
+					stunDefender(playerA);
+					stunDefender(playerB);
+				}
 				if (playerA.team === playerB.team) {
 					if (ballCarrier && playerA === ballCarrier) {
 						playerB.x += nx * overlap * 2;
