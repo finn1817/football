@@ -310,12 +310,9 @@
 		isRouting: false,
 		isPaused: false
 	};
-	const storedYard = localStorage.getItem("retry-yard-line");
-	if (storedYard !== null) {
-		yardLineInput.value = storedYard;
-	} else {
-		localStorage.setItem("retry-yard-line", String(yardLineInput.value));
-	}
+	const defaultYardLine = "25";
+	localStorage.setItem("retry-yard-line", defaultYardLine);
+	yardLineInput.value = defaultYardLine;
 	window.downsState = window.downsState ?? {
 		down: 1,
 		lineToGainY: null,
@@ -918,7 +915,9 @@
 			window.gameStats.touchdowns += 1;
 			window.gameStats.score += 7;
 			window.downsState.down = 1;
-			window.downsState.ballSpotY = getLineOfScrimmageY();
+			localStorage.setItem("retry-yard-line", "25");
+			if (yardLineInput) yardLineInput.value = "25";
+			window.downsState.ballSpotY = yardLineToY(25);
 			window.downsState.lineToGainY = window.downsState.ballSpotY - (10 * pixelsPerYard);
 			window.updateDownsPanel();
 			setNextPlayVisible(true);
@@ -1108,6 +1107,8 @@
 			if (timer) timer.textContent = window.downsState.gameOver ? "GAME OVER" : "TACKLED";
 			window.updateDownsPanel();
 			if (window.downsState.gameOver) {
+				localStorage.setItem("retry-yard-line", "25");
+				if (yardLineInput) yardLineInput.value = "25";
 				setNextPlayVisible(false);
 				setSubmitEnabled(true);
 			} else {
