@@ -258,57 +258,93 @@ function drawRoutes() {
 	});
 }
 
-let selectedPlayer = null;
-let tapTarget = null;
-let tapStart = 0;
+function drawPrepCountdown() {
+	if (!game.state.prepPhase || game.state.gameActive || game.state.playEnded) return;
+	const seconds = Math.max(0, Math.ceil(game.prepRemaining));
+	ctx.fillStyle = "rgba(0,0,0,0.35)";
+	ctx.fillRect(0, 0, canvas.width, canvas.height);
+	ctx.fillStyle = "#ffd54a";
+	ctx.font = "bold 72px Arial";
+	ctx.textAlign = "center";
+	ctx.textBaseline = "middle";
+	ctx.fillText(String(seconds), canvas.width / 2, canvas.height / 2);
+	ctx.font = "bold 16px Arial";
+	ctx.fillStyle = "white";
+	ctx.fillText("DRAW ROUTES", canvas.width / 2, canvas.height / 2 + 52);
+}
+
+const gesture = {
+	active: false,
+	player: null,
+	startX: 0,
+	startY: 0,
+	startTime: 0,
+	mode: "none"
+};
+const DRAG_THRESHOLD = 12;
+
+function getClosestOffensePlayer(x, y, maxDist = 28) {
+	let closest = null;
+	let closestDist = maxDist;
+	game.roster.forEach(player => {
+		if (player.team !== "offense") return;
+		const dist = Math.hypot(player.x - x, player.y - y);
+		if (dist < closestDist) {
+			closestDist = dist;
+			closest = player;
+		}
+	});
+	return closest;
+}
 
 function handleInput(type, x, y) {
-	if (game.state.isPaused) return;
-	if (game.state.prepPhase && !game.state.gameActive && !game.state.playEnded) {
-		if (type === "start") {
-			game.roster.forEach(player => {
-				if (player.team !== "offense") return;
-				const dist = Math.hypot(player.x - x, player.y - y);
-				if (dist < 28) {
-					game.state.isRouting = true;
-					selectedPlayer = player;
-					player.path = [];
-					player.path.push({ x: player.x, y: player.y });
-					player.path.push({ x, y });
-					player.pathIndex = 0;
-				}
-			});
-		} else if (type === "move" && selectedPlayer) {
-			selectedPlayer.path.push({ x, y });
-		} else if (type === "end") {
-			selectedPlayer = null;
-			game.state.isRouting = false;
+	if (game.state.isPaused || game.state.playEnded) return;
+
+	if (type === "start") {
+		const target = getClosestOffensePlayer(x, y, 32);
+		if (target) {
+			gesture.active = true;
+			gesture.player = target;
+			gesture.startX = x;
+			gesture.startY = y;
+			gesture.startTime = Date.now();
+			gesture.mode = "pending";
 		}
 		return;
 	}
 
-	if (!game.state.gameActive || game.state.playEnded) return;
-	if (type === "start") {
-		const targets = getThrowTargets(game);
-		let closest = null;
-		let closestDist = 40;
-		targets.forEach(player => {
-			const dist = Math.hypot(player.x - x, player.y - y);
-			if (dist < closestDist) {
-				closestDist = dist;
-				closest = player;
+	if (!gesture.active || !gesture.player) return;
+
+	if (type === "move") {
+		if (gesture.mode === "pending") {
+			const dragDist = Math.hypot(x - gesture.startX, y - gesture.startY);
+			if (dragDist >= DRAG_THRESHOLD) {
+				gesture.mode = "route";
+				game.state.isRouting = true;
+				gesture.player.path = [];
+				gesture.player.path.push({ x: gesture.player.x, y: gesture.player.y });
+				gesture.player.path.push({ x, y });
+				gesture.player.pathIndex = 0;
 			}
-		});
-		if (closest) {
-			tapTarget = closest;
-			tapStart = Date.now();
+		} else if (gesture.mode === "route") {
+			gesture.player.path.push({ x, y });
 		}
-	} else if (type === "end") {
-		if (!tapTarget) return;
-		const heldMs = Date.now() - tapStart;
-		attemptThrow(game, tapTarget, heldMs >= LOB_HOLD_MS);
-		tapTarget = null;
-		tapStart = 0;
+		return;
+	}
+
+	if (type === "end") {
+		if (gesture.mode === "route") {
+			game.state.isRouting = false;
+		} else if (gesture.mode === "pending") {
+			if (game.state.gameActive) {
+				const heldMs = Date.now() - gesture.startTime;
+				attemptThrow(game, gesture.player, heldMs >= LOB_HOLD_MS);
+			}
+		}
+		gesture.active = false;
+		gesture.player = null;
+		gesture.mode = "none";
+		gesture.startTime = 0;
 	}
 }
 
@@ -372,6 +408,7 @@ function render(timestamp) {
 	drawField();
 	drawRoutes();
 	drawPlayers();
+	drawPrepCountdown();
 	requestAnimationFrame(render);
 }
 
