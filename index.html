@@ -747,6 +747,7 @@
 	const tackleContact = new Map();
 	const defenseStunUntil = new Map();
 	const DEFENDER_STUN_MS = 1000;
+	let previousCollisions = new Set();
 
 	window.onRosterChanged = () => {
 		selectedPlayer = null;
@@ -1251,10 +1252,14 @@
 
 	function stunDefender(player) {
 		if (!player || player.team !== "defense") return;
-		defenseStunUntil.set(player.id, performance.now() + DEFENDER_STUN_MS);
+		const now = performance.now();
+		const stunnedUntil = defenseStunUntil.get(player.id) ?? 0;
+		if (stunnedUntil > now) return;
+		defenseStunUntil.set(player.id, now + DEFENDER_STUN_MS);
 	}
 
 	function resolveCollisions() {
+		const currentCollisions = new Set();
 		for (let i = 0; i < roster.length; i += 1) {
 			for (let j = i + 1; j < roster.length; j += 1) {
 				const playerA = roster[i];
@@ -1264,10 +1269,13 @@
 				const dy = playerB.y - playerA.y;
 				const dist = Math.hypot(dx, dy);
 				if (dist === 0 || dist >= collisionDistance) continue;
+				const key = playerA.id < playerB.id ? `${playerA.id}-${playerB.id}` : `${playerB.id}-${playerA.id}`;
+				currentCollisions.add(key);
+				const wasColliding = previousCollisions.has(key);
 				const overlap = (collisionDistance - dist) / 2;
 				const nx = dx / dist;
 				const ny = dy / dist;
-				if (!involvesBallCarrier) {
+				if (!involvesBallCarrier && !wasColliding) {
 					stunDefender(playerA);
 					stunDefender(playerB);
 				}
@@ -1298,6 +1306,7 @@
 				}
 			}
 		}
+		previousCollisions = currentCollisions;
 	}
 
 	function render(timestamp) {
