@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1" />
+	<title>Pocket Bowl Mobile</title>
+	<style>
+		:root {
+			color-scheme: dark;
+			font-family: "SF Mono", ui-monospace, Menlo, Consolas, monospace;
+			background: #0f0f0f;
+			color: #f5f5f5;
+		}
+		* {
+			box-sizing: border-box;
+		}
+		body {
+			margin: 0;
+			min-height: 100vh;
+			background: #0f0f0f;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			padding: 20px;
+		}
+		#card {
+			width: min(92vw, 420px);
+			background: #171717;
+			border: 1px solid #2a2a2a;
+			border-radius: 16px;
+			padding: 20px;
+			box-shadow: 0 16px 30px rgba(0,0,0,0.4);
+			display: flex;
+			flex-direction: column;
+			gap: 16px;
+		}
+		h1 {
+			margin: 0;
+			font-size: 22px;
+		}
+		p {
+			margin: 0;
+			color: #c9c9c9;
+			font-size: 13px;
+		}
+		button {
+			border: none;
+			border-radius: 999px;
+			padding: 12px 18px;
+			font-weight: 700;
+			background: #4aa3ff;
+			color: #0c0c0c;
+			cursor: pointer;
+		}
+		button.secondary {
+			background: #2a2a2a;
+			color: #f5f5f5;
+		}
+		label {
+			font-size: 12px;
+			color: #b5b5b5;
+		}
+		input {
+			width: 100%;
+			padding: 10px;
+			border-radius: 10px;
+			border: 1px solid #333;
+			background: #101010;
+			color: #f5f5f5;
+			font-family: inherit;
+		}
+		#settingsPanel {
+			display: none;
+			flex-direction: column;
+			gap: 10px;
+			padding: 12px;
+			border-radius: 12px;
+			background: #111;
+			border: 1px solid #2a2a2a;
+		}
+		#settingsPanel.active {
+			display: flex;
+		}
+	</style>
+</head>
+<body>
+	<div id="card">
+		<div>
+			<h1>POCKET BOWL MOBILE</h1>
+			<p>Tap to pass. Hold to lob. Draw routes in prep and let the 6 second clock start the play.</p>
+		</div>
+		<button id="startBtn" type="button">START GAME</button>
+		<button id="settingsBtn" class="secondary" type="button">SETTINGS</button>
+		<div id="settingsPanel">
+			<div>
+				<label for="yardLineInput">Starting yard line (0-100)</label>
+				<input id="yardLineInput" type="number" min="0" max="100" value="25" />
+			</div>
+			<button id="saveSettingsBtn" type="button">SAVE SETTINGS</button>
+		</div>
+	</div>
+
+	<script>
+		const yardLineInput = document.getElementById("yardLineInput");
+		const startBtn = document.getElementById("startBtn");
+		const settingsBtn = document.getElementById("settingsBtn");
+		const settingsPanel = document.getElementById("settingsPanel");
+		const saveSettingsBtn = document.getElementById("saveSettingsBtn");
+		const key = "iphone-yard-line";
+
+		const stored = localStorage.getItem(key);
+		if (stored !== null) {
+			yardLineInput.value = stored;
+		} else {
+			localStorage.setItem(key, "25");
+			yardLineInput.value = "25";
+		}
+
+		settingsBtn.addEventListener("click", () => {
+			settingsPanel.classList.toggle("active");
+		});
+
+		saveSettingsBtn.addEventListener("click", () => {
+			const parsed = Number(yardLineInput.value);
+			if (Number.isNaN(parsed)) return;
+			const clamped = Math.max(0, Math.min(100, parsed));
+			localStorage.setItem(key, String(clamped));
+			yardLineInput.value = String(clamped);
+		});
+
+		startBtn.addEventListener("click", () => {
+			window.location.href = "./game.html";
+		});
+	</script>
+</body>
+</html>
