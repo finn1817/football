@@ -1230,7 +1230,8 @@
 				if (dist === 0) return;
 			}
 			const speedPx = player.speedYps * pixelsPerYard;
-			const step = speedPx * deltaSeconds;
+			const speedMultiplier = player.hasBall ? 0.85 : 1;
+			const step = speedPx * speedMultiplier * deltaSeconds;
 			if (dist <= step) {
 				player.x = target.x;
 				player.y = target.y;
