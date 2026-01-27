@@ -10,7 +10,9 @@ import {
 } from "./characters.js";
 import { moveDefense, moveOffense } from "./movement.js";
 import { advanceBallFlight, attemptThrow, getThrowTargets, LOB_HOLD_MS } from "./throw.js";
-import { checkTackle, checkTouchdown, resolveCollisions } from "./stun-tackle.js";
+import { resetForNextPlay, startPlay } from "./next-play.js";
+import { checkTackle, resolveCollisions } from "./stun-tackle.js";
+import { checkTouchdown } from "./touchdown.js";
 
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
@@ -19,6 +21,7 @@ const downLabel = document.getElementById("downLabel");
 const ytgLabel = document.getElementById("ytgLabel");
 const ballLabel = document.getElementById("ballLabel");
 const scoreLabel = document.getElementById("scoreLabel");
+const tinyScore = document.getElementById("tinyScore");
 const nextPlayBtn = document.getElementById("nextPlayBtn");
 const backBtn = document.getElementById("backBtn");
 
@@ -86,6 +89,7 @@ const game = {
 		ytgLabel.textContent = `YTG: ${ytg}`;
 		ballLabel.textContent = `Ball: ${Math.round(yToYardLine(this.field, lineY))}`;
 		if (scoreLabel) scoreLabel.textContent = `Score: ${this.stats.score}`;
+		if (tinyScore) tinyScore.textContent = `Score ${this.stats.score}`;
 	}
 };
 
@@ -124,38 +128,6 @@ function initializeGameState() {
 	game.setTimerText("PREP: 6");
 }
 
-function startPlay() {
-	if (game.state.gameActive || game.state.isPaused || game.state.playEnded) return;
-	game.state.prepPhase = false;
-	game.state.gameActive = true;
-	game.setTimerText("GO!");
-	game.lineOfScrimmageY = game.downsState.ballSpotY ?? getLineOfScrimmageY(game.field);
-	if (game.downsState.lineToGainY === null) {
-		game.downsState.lineToGainY = game.lineOfScrimmageY - (10 * game.pixelsPerYard);
-	}
-	game.updateDownsPanel();
-}
-
-function resetForNextPlay() {
-	if (game.downsState.gameOver) return;
-	const spotY = game.downsState.ballSpotY ?? getLineOfScrimmageY(game.field);
-	const yardLine = Math.round(yToYardLine(game.field, spotY));
-	localStorage.setItem("iphone-yard-line", String(yardLine));
-	applyFormationToLine(game.roster, yardLineToY(game.field, yardLine));
-	game.roster.forEach(player => player.reset());
-	game.ballCarrier = game.roster.find(player => player.role === "QB") ?? game.roster[0];
-	game.roster.forEach(player => {
-		player.hasBall = (player === game.ballCarrier);
-		player.pathIndex = 0;
-	});
-	game.ballFlight = null;
-	game.state.prepPhase = true;
-	game.state.gameActive = false;
-	game.state.playEnded = false;
-	game.prepRemaining = 6;
-	game.setNextPlayVisible(false);
-	game.setTimerText("PREP: 6");
-}
 
 function drawField() {
 	ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -358,24 +330,28 @@ function getPos(event) {
 }
 
 canvas.addEventListener("pointerdown", event => {
+	event.preventDefault();
 	const pos = getPos(event);
 	handleInput("start", pos.x, pos.y);
-});
+}, { passive: false });
 canvas.addEventListener("pointermove", event => {
+	event.preventDefault();
 	const pos = getPos(event);
 	handleInput("move", pos.x, pos.y);
-});
+}, { passive: false });
 canvas.addEventListener("pointerup", event => {
+	event.preventDefault();
 	const pos = getPos(event);
 	handleInput("end", pos.x, pos.y);
-});
+}, { passive: false });
 canvas.addEventListener("pointercancel", event => {
+	event.preventDefault();
 	const pos = getPos(event);
 	handleInput("end", pos.x, pos.y);
-});
+}, { passive: false });
 
 nextPlayBtn?.addEventListener("click", () => {
-	resetForNextPlay();
+	resetForNextPlay(game);
 });
 
 backBtn?.addEventListener("click", () => {
@@ -387,7 +363,7 @@ function updateTimer(deltaSeconds) {
 	game.prepRemaining = Math.max(0, game.prepRemaining - deltaSeconds);
 	game.setTimerText(`PREP: ${Math.ceil(game.prepRemaining)}`);
 	if (game.prepRemaining <= 0) {
-		startPlay();
+		startPlay(game);
 	}
 }
 

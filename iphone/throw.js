@@ -1,3 +1,5 @@
+import { handleInterception } from "./next-play.js";
+
 export const LOB_HOLD_MS = 400;
 
 export function getThrowTargets(game) {
@@ -92,12 +94,7 @@ export function advanceBallFlight(game) {
 	game.ballFlight.y = lerp(game.ballFlight.startY, endY, progress) - arcOffset;
 	if (progress >= 1) {
 		if (game.ballFlight.interceptTarget) {
-			game.ballFlight.interceptTarget.hasBall = true;
-			game.ballCarrier = game.ballFlight.interceptTarget;
-			game.state.gameActive = false;
-			game.state.playEnded = true;
-			game.setTimerText("INTERCEPTED");
-			game.setNextPlayVisible(true);
+			handleInterception(game, game.ballFlight.interceptTarget);
 		} else {
 			game.ballFlight.target.hasBall = true;
 			game.ballCarrier = game.ballFlight.target;

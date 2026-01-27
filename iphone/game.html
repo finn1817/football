@@ -20,6 +20,9 @@
 			background: #111;
 			touch-action: manipulation;
 			overscroll-behavior: none;
+			-webkit-touch-callout: none;
+			-webkit-user-select: none;
+			user-select: none;
 		}
 		#gameRoot {
 			display: flex;
@@ -63,11 +66,27 @@
 			overflow: hidden;
 			border: 1px solid #1f1f1f;
 		}
+		#tinyScore {
+			position: absolute;
+			top: 10px;
+			left: 10px;
+			padding: 4px 8px;
+			font-size: 11px;
+			font-weight: 600;
+			border-radius: 999px;
+			background: rgba(0,0,0,0.55);
+			color: #ffd54a;
+			letter-spacing: 0.3px;
+			pointer-events: none;
+		}
 		#gameCanvas {
 			display: block;
 			width: 100%;
 			height: 70vh;
 			touch-action: none;
+			-webkit-touch-callout: none;
+			-webkit-user-select: none;
+			user-select: none;
 		}
 		#overlayButtons {
 			position: absolute;
@@ -115,6 +134,7 @@
 
 		<div id="gameStage">
 			<canvas id="gameCanvas"></canvas>
+			<div id="tinyScore">Score 0</div>
 			<div id="overlayButtons">
 				<button id="nextPlayBtn" class="secondary" type="button">NEXT PLAY</button>
 				<button id="backBtn" class="secondary" type="button">BACK</button>

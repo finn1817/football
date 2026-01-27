@@ -1,4 +1,4 @@
-import { yardLineToY } from "./characters.js";
+import { handleTackleResult } from "./next-play.js";
 
 const COLLISION_DISTANCE = 30;
 const TACKLE_DISTANCE = 22;
@@ -85,43 +85,6 @@ export function checkTackle(game) {
 		}
 	});
 	if (tackled) {
-		game.state.gameActive = false;
-		game.state.playEnded = true;
-		game.downsState.ballSpotY = game.ballCarrier.y;
-		if (game.downsState.ballSpotY <= game.downsState.lineToGainY) {
-			game.downsState.down = 1;
-			game.downsState.lineToGainY = game.downsState.ballSpotY - (10 * game.pixelsPerYard);
-		} else {
-			if (game.downsState.down >= 4) {
-				game.downsState.gameOver = true;
-			} else {
-				game.downsState.down += 1;
-			}
-		}
-		game.setTimerText(game.downsState.gameOver ? "GAME OVER" : "TACKLED");
-		game.updateDownsPanel();
-		if (game.downsState.gameOver) {
-			game.setNextPlayVisible(false);
-		} else {
-			game.setNextPlayVisible(true);
-		}
-	}
-}
-
-export function checkTouchdown(game) {
-	if (!game.state.gameActive || game.state.isPaused) return;
-	if (!game.ballCarrier || game.ballCarrier.team !== "offense") return;
-	if (game.ballCarrier.y <= game.field.topY) {
-		game.state.gameActive = false;
-		game.state.playEnded = true;
-		game.setTimerText("TOUCHDOWN!");
-		game.stats.touchdowns += 1;
-		game.stats.score += 7;
-		game.downsState.down = 1;
-		localStorage.setItem("iphone-yard-line", "25");
-		game.downsState.ballSpotY = yardLineToY(game.field, 25);
-		game.downsState.lineToGainY = game.downsState.ballSpotY - (10 * game.pixelsPerYard);
-		game.updateDownsPanel();
-		game.setNextPlayVisible(true);
+		handleTackleResult(game);
 	}
 }
