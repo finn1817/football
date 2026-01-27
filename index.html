@@ -366,6 +366,9 @@
 		snapBtn.addEventListener("click", () => {
 			if (window.retryState.isPaused) return;
 			if (window.downsState.gameOver) return;
+			if (typeof window.onRosterChanged === "function") {
+				window.onRosterChanged();
+			}
 			window.retryState.prepPhase = false;
 			window.retryState.gameActive = true;
 			timerLabel.textContent = "GO!";
@@ -392,6 +395,9 @@
 			yardLineInput.value = String(yardLine);
 			applyFormationToLine(yardLineToY(yardLine));
 			roster.forEach(player => player.reset());
+			if (typeof window.onRosterChanged === "function") {
+				window.onRosterChanged();
+			}
 			window.retryState.prepPhase = true;
 			window.retryState.gameActive = false;
 			window.retryState.isRouting = false;
