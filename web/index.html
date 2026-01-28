@@ -367,6 +367,7 @@
 			if (typeof window.onRosterChanged === "function") {
 				window.onRosterChanged();
 			}
+			resetRushClock();
 			window.retryState.prepPhase = false;
 			window.retryState.gameActive = true;
 			timerLabel.textContent = "GO!";
@@ -396,6 +397,7 @@
 			if (typeof window.onRosterChanged === "function") {
 				window.onRosterChanged();
 			}
+			resetRushClock();
 			window.retryState.prepPhase = true;
 			window.retryState.gameActive = false;
 			window.retryState.isRouting = false;
@@ -722,6 +724,25 @@
 	const defenseStunUntil = new Map();
 	const DEFENDER_STUN_MS = 1000;
 	let previousCollisions = new Set();
+	const RUSH_DELAY_MIN = 4;
+	const RUSH_DELAY_MAX = 10;
+	const RUSH_SPEED_MULTIPLIER = 1.35;
+	const RUSH_PUSH_THROUGH = 0.55;
+	let playClockSeconds = 0;
+	let rushDelaySeconds = 6;
+
+	function resetRushClock() {
+		playClockSeconds = 0;
+		rushDelaySeconds = RUSH_DELAY_MIN + Math.random() * (RUSH_DELAY_MAX - RUSH_DELAY_MIN);
+	}
+
+	function isRushActive() {
+		return state.gameActive && playClockSeconds >= rushDelaySeconds;
+	}
+
+	function isRusher(player) {
+		return player?.team === "defense" && (player.role === "DL" || player.role === "MLB" || player.role === "S");
+	}
 
 	window.onRosterChanged = () => {
 		selectedPlayer = null;
@@ -1002,6 +1023,7 @@
 			defenseAssigned = true;
 		}
 		const now = performance.now();
+		const rushActive = isRushActive();
 		const assignments = assignDefenseTargets();
 		const losY = getLineOfScrimmageY();
 		const qb = roster.find(player => player.role === "QB" && player.team === "offense");
@@ -1017,10 +1039,10 @@
 				target = roster.find(player => player.id === assignedId) ?? null;
 			}
 			if (defender.role === "MLB") {
-				target = chaseTarget;
+				target = rushActive ? (qb ?? chaseTarget) : chaseTarget;
 			}
 			if (defender.role === "S") {
-				target = chaseTarget;
+				target = rushActive ? (qb ?? chaseTarget) : chaseTarget;
 			}
 			if (defender.role === "DL") {
 				target = qb ?? chaseTarget;
@@ -1033,7 +1055,7 @@
 			const dy = target.y - defender.y;
 			const dist = Math.hypot(dx, dy);
 			if (dist === 0) return;
-			const speedPx = defender.speedYps * pixelsPerYard;
+			const speedPx = defender.speedYps * pixelsPerYard * (rushActive && isRusher(defender) ? RUSH_SPEED_MULTIPLIER : 1);
 			const step = speedPx * deltaSeconds;
 			if (dist <= step) {
 				defender.x = target.x;
@@ -1237,6 +1259,7 @@
 	}
 
 	function resolveCollisions() {
+		const rushActive = isRushActive();
 		const currentCollisions = new Set();
 		for (let i = 0; i < roster.length; i += 1) {
 			for (let j = i + 1; j < roster.length; j += 1) {
@@ -1275,11 +1298,13 @@
 						continue;
 					}
 					if (playerA.team === "defense") {
-						playerA.x -= nx * overlap * 2;
-						playerA.y -= ny * overlap * 2;
+						const slip = rushActive && isRusher(playerA) ? (1 - RUSH_PUSH_THROUGH) : 1;
+						playerA.x -= nx * overlap * 2 * slip;
+						playerA.y -= ny * overlap * 2 * slip;
 					} else if (playerB.team === "defense") {
-						playerB.x += nx * overlap * 2;
-						playerB.y += ny * overlap * 2;
+						const slip = rushActive && isRusher(playerB) ? (1 - RUSH_PUSH_THROUGH) : 1;
+						playerB.x += nx * overlap * 2 * slip;
+						playerB.y += ny * overlap * 2 * slip;
 					}
 				}
 			}
@@ -1291,6 +1316,9 @@
 		if (!lastFrameTime) lastFrameTime = timestamp;
 		const deltaSeconds = Math.min(0.05, (timestamp - lastFrameTime) / 1000);
 		lastFrameTime = timestamp;
+		if (state.gameActive && !state.isPaused) {
+			playClockSeconds += deltaSeconds;
+		}
 
 		updateReceiverList();
 		advanceBallFlight();
