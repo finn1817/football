@@ -13,6 +13,7 @@ import { advanceBallFlight, attemptThrow, getThrowTargets, LOB_HOLD_MS } from ".
 import { resetForNextPlay, startPlay } from "./next-play.js";
 import { checkTackle, resolveCollisions } from "./stun-tackle.js";
 import { checkTouchdown } from "./touchdown.js";
+import { fetchHighscores, initFirebase, submitHighscore } from "../firebase/firebase.js";
 
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
@@ -24,6 +25,9 @@ const scoreLabel = document.getElementById("scoreLabel");
 const tinyScore = document.getElementById("tinyScore");
 const nextPlayBtn = document.getElementById("nextPlayBtn");
 const backBtn = document.getElementById("backBtn");
+const mobileLeaderboardList = document.getElementById("mobileLeaderboardList");
+const mobileScoreNameInput = document.getElementById("mobileScoreNameInput");
+const mobileSubmitScoreBtn = document.getElementById("mobileSubmitScoreBtn");
 
 const game = {
 	field: {
@@ -79,6 +83,10 @@ const game = {
 		if (!nextPlayBtn) return;
 		nextPlayBtn.classList.toggle("active", visible);
 	},
+	setSubmitEnabled(enabled) {
+		if (mobileSubmitScoreBtn) mobileSubmitScoreBtn.disabled = !enabled;
+		if (mobileScoreNameInput) mobileScoreNameInput.disabled = !enabled;
+	},
 	updateDownsPanel() {
 		if (!downLabel || !ytgLabel || !ballLabel) return;
 		const lineY = this.downsState.ballSpotY ?? this.lineOfScrimmageY;
@@ -92,6 +100,53 @@ const game = {
 		if (tinyScore) tinyScore.textContent = `Score ${this.stats.score}`;
 	}
 };
+
+initFirebase();
+
+async function refreshLeaderboard() {
+	if (!mobileLeaderboardList) return;
+	mobileLeaderboardList.innerHTML = "<li>Loading...</li>";
+	try {
+		const entries = await fetchHighscores(10);
+		mobileLeaderboardList.innerHTML = "";
+		if (!entries.length) {
+			mobileLeaderboardList.innerHTML = "<li>No scores yet.</li>";
+			return;
+		}
+		let rank = 1;
+		entries.forEach(entry => {
+			const name = String(entry.username ?? "Anonymous").slice(0, 16);
+			const score = Number(entry.score ?? 0);
+			const date = entry.date ? String(entry.date) : "";
+			const time = entry.time ? String(entry.time) : "";
+			const stamp = date && time ? ` • ${date} ${time}` : "";
+			const item = document.createElement("li");
+			item.textContent = `${rank}. ${name} — ${score}${stamp}`;
+			mobileLeaderboardList.appendChild(item);
+			rank += 1;
+		});
+	} catch (error) {
+		mobileLeaderboardList.innerHTML = "<li>Unable to load scores.</li>";
+		console.error(error);
+	}
+}
+
+async function submitScore() {
+	if (!mobileSubmitScoreBtn || mobileSubmitScoreBtn.disabled) return;
+	const name = mobileScoreNameInput?.value.trim() ?? "";
+	if (!name) return;
+	const score = Number(game.stats?.score ?? 0);
+	try {
+		mobileSubmitScoreBtn.disabled = true;
+		await submitHighscore({ username: name.slice(0, 16), score });
+		localStorage.setItem("iphone-player-name", name.slice(0, 16));
+		await refreshLeaderboard();
+	} catch (error) {
+		console.error(error);
+	} finally {
+		mobileSubmitScoreBtn.disabled = false;
+	}
+}
 
 function resizeCanvas() {
 	const rect = canvas.getBoundingClientRect();
@@ -126,6 +181,7 @@ function initializeGameState() {
 	game.state.playEnded = false;
 	game.setNextPlayVisible(false);
 	game.setTimerText("PREP: 6");
+	game.setSubmitEnabled(false);
 }
 
 
@@ -350,6 +406,21 @@ canvas.addEventListener("pointercancel", event => {
 	handleInput("end", pos.x, pos.y);
 }, { passive: false });
 
+if (mobileScoreNameInput) {
+	const storedName = localStorage.getItem("iphone-player-name");
+	if (storedName) mobileScoreNameInput.value = storedName;
+}
+if (mobileSubmitScoreBtn) {
+	mobileSubmitScoreBtn.addEventListener("click", submitScore);
+}
+
+game.onGameOver = () => {
+	game.setSubmitEnabled(true);
+};
+game.onPlayReset = () => {
+	game.setSubmitEnabled(false);
+};
+
 nextPlayBtn?.addEventListener("click", () => {
 	resetForNextPlay(game);
 });
@@ -389,6 +460,7 @@ function render(timestamp) {
 }
 
 initializeGameState();
+refreshLeaderboard();
 window.addEventListener("resize", () => {
 	initializeGameState();
 });

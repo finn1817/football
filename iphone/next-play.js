@@ -37,6 +37,9 @@ export function resetForNextPlay(game) {
 	game.setNextPlayVisible(false);
 	game.setTimerText("PREP: 6");
 	game.updateDownsPanel();
+	if (typeof game.onPlayReset === "function") {
+		game.onPlayReset();
+	}
 }
 
 export function handleTackleResult(game) {
@@ -57,6 +60,9 @@ export function handleTackleResult(game) {
 	game.updateDownsPanel();
 	if (game.downsState.gameOver) {
 		game.setNextPlayVisible(false);
+		if (typeof game.onGameOver === "function") {
+			game.onGameOver();
+		}
 	} else {
 		game.setNextPlayVisible(true);
 	}

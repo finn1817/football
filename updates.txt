@@ -46,6 +46,3 @@ Future Vision — Playbook Platform (not yet implemented)
 - Allow per-player speed adjustments to model real-time scenarios.
 - Add a structured play library and analytics dashboard.
 
-
-On now
-- Down tracking
