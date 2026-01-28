@@ -162,6 +162,11 @@ p {
 	padding: 24px 32px 48px;
 }
 
+.dashboard--creator {
+	grid-template-columns: minmax(260px, 1fr) minmax(520px, 2fr) minmax(260px, 1fr);
+	align-items: start;
+}
+
 .canvas-panel {
 	background: var(--panel);
 	border-radius: 24px;
@@ -252,6 +257,65 @@ canvas#playbook-canvas {
 	color: var(--text);
 }
 
+.player-details select {
+	background: #0b1222;
+	border: 1px solid var(--border);
+	border-radius: 8px;
+	padding: 6px 8px;
+	color: var(--text);
+}
+
+.form-grid {
+	display: grid;
+	gap: 12px;
+}
+
+.form-grid label {
+	display: grid;
+	gap: 6px;
+	font-size: 12px;
+	color: var(--muted);
+}
+
+.form-grid input,
+.form-grid textarea,
+.form-grid select {
+	background: #0b1222;
+	border: 1px solid var(--border);
+	border-radius: 10px;
+	padding: 10px 12px;
+	color: var(--text);
+	font-family: inherit;
+}
+
+.button-row {
+	margin-top: 16px;
+	display: flex;
+	flex-wrap: wrap;
+	gap: 10px;
+}
+
+.share-row {
+	margin-top: 12px;
+	display: flex;
+	align-items: center;
+	gap: 10px;
+}
+
+.share-code {
+	font-weight: 600;
+	color: var(--accent);
+}
+
+.tips {
+	margin: 0;
+	padding-left: 18px;
+	color: var(--muted);
+	font-size: 13px;
+	display: grid;
+	gap: 6px;
+}
+
 .plays-list {
 	display: grid;
 	gap: 12px;
@@ -277,6 +341,11 @@ canvas#playbook-canvas {
 .play-card__meta {
 	font-size: 12px;
 	color: var(--muted);
+}
+
+.text-muted {
+	color: var(--muted);
+	font-size: 12px;
 }
 
 .empty-state {
@@ -329,6 +398,9 @@ canvas#playbook-canvas {
 
 @media (max-width: 960px) {
 	.dashboard {
+		grid-template-columns: 1fr;
+	}
+	.dashboard--creator {
 		grid-template-columns: 1fr;
 	}
 }

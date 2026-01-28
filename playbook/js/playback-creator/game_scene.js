@@ -94,21 +94,37 @@ export function createPlaybookScene({ canvas, onSelectPlayer }) {
 		requestAnimationFrame(render);
 	}
 
+	function clamp(value, min, max) {
+		return Math.max(min, Math.min(max, value));
+	}
+
 	function getPointerPos(event) {
 		const rect = canvas.getBoundingClientRect();
-		return {
-			x: event.clientX - rect.left,
-			y: event.clientY - rect.top
-		};
+		const scaleX = canvas.width / rect.width;
+		const scaleY = canvas.height / rect.height;
+		const rawX = (event.clientX - rect.left) * scaleX;
+		const rawY = (event.clientY - rect.top) * scaleY;
+		const x = clamp(rawX, 12, canvas.width - 12);
+		const y = clamp(rawY, 12, canvas.height - 12);
+		return { x, y };
 	}
 
 	let dragPlayer = null;
 	let drawingRoute = null;
+	let isPointerDown = false;
+	let pointerMoved = false;
 
 	canvas.addEventListener("pointerdown", event => {
 		const { x, y } = getPointerPos(event);
 		const hit = scene.roster.find(player => Math.hypot(player.x - x, player.y - y) < 18);
-		if (!hit) return;
+		isPointerDown = true;
+		pointerMoved = false;
+		canvas.setPointerCapture(event.pointerId);
+		if (!hit) {
+			scene.selectedPlayer = null;
+			if (scene.onSelectPlayer) scene.onSelectPlayer(null);
+			return;
+		}
 		scene.selectedPlayer = hit;
 		if (scene.onSelectPlayer) scene.onSelectPlayer(hit);
 		if (scene.mode === "move") {
@@ -121,15 +137,31 @@ export function createPlaybookScene({ canvas, onSelectPlayer }) {
 
 	canvas.addEventListener("pointermove", event => {
 		const { x, y } = getPointerPos(event);
+		if (!isPointerDown) return;
+		pointerMoved = true;
 		if (dragPlayer) {
 			dragPlayer.x = x;
 			dragPlayer.y = y;
 		} else if (drawingRoute) {
-			drawingRoute.path.push({ x, y });
+			const last = drawingRoute.path[drawingRoute.path.length - 1];
+			if (!last || Math.hypot(last.x - x, last.y - y) > 6) {
+				drawingRoute.path.push({ x, y });
+			}
 		}
 	});
 
-	canvas.addEventListener("pointerup", () => {
+	canvas.addEventListener("pointerup", event => {
+		isPointerDown = false;
+		if (drawingRoute && !pointerMoved) {
+			drawingRoute.path = [{ x: drawingRoute.x, y: drawingRoute.y }];
+		}
+		dragPlayer = null;
+		drawingRoute = null;
+		canvas.releasePointerCapture(event.pointerId);
+	});
+
+	canvas.addEventListener("pointerleave", () => {
+		isPointerDown = false;
 		dragPlayer = null;
 		drawingRoute = null;
 	});
@@ -155,6 +187,17 @@ export function createPlaybookScene({ canvas, onSelectPlayer }) {
 			const player = scene.roster.find(p => p.id === playerId);
 			applyPlayerAdjustments(player, updates);
 		},
-		resetRoster
+		resetRoster,
+		clearSelectedRoute: () => {
+			if (scene.selectedPlayer) {
+				scene.selectedPlayer.path = [];
+			}
+		},
+		clearAllRoutes: () => {
+			scene.roster.forEach(player => {
+				player.path = [];
+			});
+		},
+		getSelectedPlayer: () => scene.selectedPlayer
 	};
 }

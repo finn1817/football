@@ -17,22 +17,61 @@
 			<a class="ghost" href="admin.html">Admin</a>
 		</div>
 	</header>
-	<main class="dashboard">
+	<main class="dashboard dashboard--creator">
+		<aside class="side-panel">
+			<section class="panel-block">
+				<h3>Play details</h3>
+				<div class="form-grid">
+					<label>
+						Play name
+						<input id="play-name" type="text" placeholder="Trips flood" />
+					</label>
+					<label>
+						Type
+						<select id="play-type">
+							<option value="offense">Offense</option>
+							<option value="defense">Defense</option>
+							<option value="special">Special</option>
+						</select>
+					</label>
+					<label>
+						Description
+						<textarea id="play-description" rows="3" placeholder="Goal line boot, TE delays then flat"></textarea>
+					</label>
+				</div>
+				<div class="button-row">
+					<button id="new-play" class="ghost">New play</button>
+					<button id="save-play" class="primary">Save play</button>
+					<button id="delete-play" class="ghost">Delete</button>
+				</div>
+				<div class="share-row">
+					<button id="share-play" class="ghost">Create share code</button>
+					<span id="share-code" class="share-code">--</span>
+				</div>
+			</section>
+			<section class="panel-block">
+				<div class="panel-header">
+					<h3>Saved plays</h3>
+					<button id="refresh-plays" class="ghost">Refresh</button>
+				</div>
+				<div id="plays-list" class="plays-list"></div>
+			</section>
+		</aside>
 		<section class="canvas-panel">
 			<div class="canvas-toolbar">
 				<div class="toggle-group">
-					<button class="toggle is-active" data-mode="route">Route</button>
-					<button class="toggle" data-mode="move">Move</button>
+					<button class="toggle is-active" data-mode="route">Draw route</button>
+					<button class="toggle" data-mode="move">Move players</button>
 				</div>
 				<div class="toggle-group">
 					<button id="simulate-toggle" class="toggle">Simulate</button>
-					<button id="reset-roster" class="toggle">Reset</button>
+					<button id="reset-roster" class="toggle">Reset roster</button>
 				</div>
 			</div>
-			<canvas id="playbook-canvas" width="900" height="540"></canvas>
+			<canvas id="playbook-canvas" width="1100" height="680"></canvas>
 			<div class="canvas-actions">
-				<button id="save-play" class="primary">Save play</button>
-				<button id="share-play" class="ghost">Create share code</button>
+				<button id="clear-route" class="ghost">Clear route</button>
+				<button id="clear-all-routes" class="ghost">Clear all routes</button>
 			</div>
 		</section>
 		<aside class="side-panel">
@@ -43,11 +82,12 @@
 				</div>
 			</section>
 			<section class="panel-block">
-				<div class="panel-header">
-					<h3>Saved plays</h3>
-					<button id="refresh-plays" class="ghost">Refresh</button>
-				</div>
-				<div id="plays-list" class="plays-list"></div>
+				<h3>Quick tips</h3>
+				<ul class="tips">
+					<li>Use Move players to drag anyone into alignment.</li>
+					<li>Use Draw route to sketch a path for the selected player.</li>
+					<li>Hit Simulate to preview the timing.</li>
+				</ul>
 			</section>
 			<section class="panel-block">
 				<h3>Analytics snapshot</h3>
