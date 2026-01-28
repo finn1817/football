@@ -12,6 +12,9 @@
 			<h2>Dans playbook simulator</h2>
 			<p id="user-summary"></p>
 		</div>
+		<div class="top-bar__center">
+			<button id="settings-button" class="ghost">Field settings</button>
+		</div>
 		<div class="top-bar__actions">
 			<button id="logout-button" class="ghost">Log out</button>
 			<a class="ghost" href="admin.html">Admin</a>
@@ -32,15 +35,6 @@
 							<option value="offense">Offense</option>
 							<option value="defense">Defense</option>
 							<option value="special">Special</option>
-						</select>
-					</label>
-					<label>
-						Field view
-						<select id="field-view">
-							<option value="full">Full field (0-100)</option>
-							<option value="opponent">Opponent half (50-100)</option>
-							<option value="redzone">Red zone (80-100)</option>
-							<option value="goal-line">Goal line (90-100)</option>
 						</select>
 					</label>
 					<label>
@@ -117,6 +111,43 @@
 			</section>
 		</aside>
 	</main>
+
+	<div id="settings-modal" class="modal is-hidden" role="dialog" aria-modal="true">
+		<div class="modal__backdrop"></div>
+		<div class="modal__content">
+			<header class="modal__header">
+				<h3>Field settings</h3>
+				<button id="settings-close" class="ghost">Close</button>
+			</header>
+			<div class="modal__body">
+				<div class="form-grid">
+					<label>
+						Field view
+						<select id="field-view-select">
+							<option value="full">Full field (0-100)</option>
+							<option value="opponent">Opponent half (50-100)</option>
+							<option value="redzone">Red zone (80-100)</option>
+							<option value="goal-line">Goal line (90-100)</option>
+						</select>
+					</label>
+					<label>
+						Show yard numbers
+						<div class="toggle-row">
+							<input id="toggle-numbers" type="checkbox" checked />
+							<span>On</span>
+						</div>
+					</label>
+					<label>
+						Show hash marks
+						<div class="toggle-row">
+							<input id="toggle-hash" type="checkbox" checked />
+							<span>On</span>
+						</div>
+					</label>
+				</div>
+			</div>
+		</div>
+	</div>
 	<script type="module" src="js/playbook.js"></script>
 </body>
 </html>

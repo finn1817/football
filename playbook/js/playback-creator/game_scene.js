@@ -1,4 +1,5 @@
 import { createFieldDimensions, buildDefaultRoster, yardLineToY, FIELD_CONFIG } from "../character/characters.js";
+import { resolveFieldView } from "./field_views.js";
 import { movePlayers } from "../character/movement.js";
 import { applyPlayerAdjustments, serializePlayer } from "../character/player-adjustments.js";
 import { separateOverlaps } from "../character/realistic_stun_seperation.js";
@@ -17,7 +18,9 @@ export function createPlaybookScene({ canvas, onSelectPlayer }) {
 		lastFrameTime: null,
 		onSelectPlayer,
 		viewStartYard: 0,
-		viewEndYard: 100
+		viewEndYard: 100,
+		showNumbers: true,
+		showHash: true
 	};
 
 	function getViewBounds() {
@@ -82,18 +85,37 @@ export function createPlaybookScene({ canvas, onSelectPlayer }) {
 			ctx.stroke();
 		}
 
-		ctx.fillStyle = "rgba(255,255,255,0.9)";
-		ctx.font = "12px Arial";
-		ctx.textAlign = "left";
-		for (let yard = 10; yard <= 90; yard += 10) {
-			if (yard < startYard || yard > endYard) continue;
-			const label = yard <= 50 ? yard : 100 - yard;
-			const fieldY = yardLineToY(scene.field, yard);
-			const y = fieldToScreenY(fieldY);
-			ctx.fillText(String(label), 6, y + 4);
-			ctx.textAlign = "right";
-			ctx.fillText(String(label), width - 6, y + 4);
+		if (scene.showNumbers) {
+			ctx.fillStyle = "rgba(255,255,255,0.9)";
+			ctx.font = "12px Arial";
 			ctx.textAlign = "left";
+			for (let yard = 10; yard <= 90; yard += 10) {
+				if (yard < startYard || yard > endYard) continue;
+				const label = yard <= 50 ? yard : 100 - yard;
+				const fieldY = yardLineToY(scene.field, yard);
+				const y = fieldToScreenY(fieldY);
+				ctx.fillText(String(label), 6, y + 4);
+				ctx.textAlign = "right";
+				ctx.fillText(String(label), width - 6, y + 4);
+				ctx.textAlign = "left";
+			}
+		}
+
+		if (scene.showHash) {
+			ctx.strokeStyle = "rgba(255,255,255,0.25)";
+			ctx.lineWidth = 1;
+			for (let yard = Math.ceil(startYard / 5) * 5; yard <= endYard; yard += 5) {
+				const fieldY = yardLineToY(scene.field, yard);
+				const y = fieldToScreenY(fieldY);
+				const leftHash = width * 0.36;
+				const rightHash = width * 0.64;
+				ctx.beginPath();
+				ctx.moveTo(leftHash - 14, y);
+				ctx.lineTo(leftHash + 14, y);
+				ctx.moveTo(rightHash - 14, y);
+				ctx.lineTo(rightHash + 14, y);
+				ctx.stroke();
+			}
 		}
 	}
 
@@ -251,26 +273,12 @@ export function createPlaybookScene({ canvas, onSelectPlayer }) {
 			});
 		},
 		getSelectedPlayer: () => scene.selectedPlayer,
-		setFieldView: (mode) => {
-			switch (mode) {
-				case "opponent":
-					scene.viewStartYard = 50;
-					scene.viewEndYard = 100;
-					break;
-				case "redzone":
-					scene.viewStartYard = 80;
-					scene.viewEndYard = 100;
-					break;
-				case "goal-line":
-					scene.viewStartYard = 90;
-					scene.viewEndYard = 100;
-					break;
-				case "full":
-				default:
-					scene.viewStartYard = 0;
-					scene.viewEndYard = 100;
-					break;
-			}
+		setFieldView: ({ viewId, showNumbers, showHash }) => {
+			const next = resolveFieldView({ viewId, showNumbers, showHash });
+			scene.viewStartYard = next.startYard;
+			scene.viewEndYard = next.endYard;
+			scene.showNumbers = next.showNumbers;
+			scene.showHash = next.showHash;
 		}
 	};
 }

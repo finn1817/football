@@ -35,10 +35,15 @@ const clearAllRoutesButton = document.getElementById("clear-all-routes");
 const playNameInput = document.getElementById("play-name");
 const playTypeInput = document.getElementById("play-type");
 const playDescriptionInput = document.getElementById("play-description");
-const fieldViewInput = document.getElementById("field-view");
 const shareCode = document.getElementById("share-code");
 const simulateToggle = document.getElementById("simulate-toggle");
 const resetRosterButton = document.getElementById("reset-roster");
+let settingsButton = document.getElementById("settings-button");
+let settingsModal = document.getElementById("settings-modal");
+let settingsClose = document.getElementById("settings-close");
+let fieldViewSelect = document.getElementById("field-view-select");
+let toggleNumbers = document.getElementById("toggle-numbers");
+let toggleHash = document.getElementById("toggle-hash");
 
 const statPlays = document.getElementById("stat-plays");
 const statShares = document.getElementById("stat-shares");
@@ -134,12 +139,117 @@ const scene = createPlaybookScene({
 	onSelectPlayer: renderPlayerDetails
 });
 
-if (fieldViewInput) {
-	fieldViewInput.addEventListener("change", () => {
-		scene.setFieldView(fieldViewInput.value);
+function ensureSettingsUi() {
+	if (!settingsButton) {
+		const topBar = document.querySelector(".top-bar");
+		const actions = document.querySelector(".top-bar__actions");
+		let center = document.querySelector(".top-bar__center");
+		if (!center && topBar) {
+			center = document.createElement("div");
+			center.className = "top-bar__center";
+			if (actions) {
+				topBar.insertBefore(center, actions);
+			} else {
+				topBar.appendChild(center);
+			}
+		}
+		if (center) {
+			settingsButton = document.createElement("button");
+			settingsButton.id = "settings-button";
+			settingsButton.className = "ghost";
+			settingsButton.textContent = "Field settings";
+			center.appendChild(settingsButton);
+		}
+	}
+
+	if (!settingsModal) {
+		settingsModal = document.createElement("div");
+		settingsModal.id = "settings-modal";
+		settingsModal.className = "modal is-hidden";
+		settingsModal.setAttribute("role", "dialog");
+		settingsModal.setAttribute("aria-modal", "true");
+		settingsModal.innerHTML = `
+			<div class="modal__backdrop"></div>
+			<div class="modal__content">
+				<header class="modal__header">
+					<h3>Field settings</h3>
+					<button id="settings-close" class="ghost">Close</button>
+				</header>
+				<div class="modal__body">
+					<div class="form-grid">
+						<label>
+							Field view
+							<select id="field-view-select">
+								<option value="full">Full field (0-100)</option>
+								<option value="opponent">Opponent half (50-100)</option>
+								<option value="redzone">Red zone (80-100)</option>
+								<option value="goal-line">Goal line (90-100)</option>
+							</select>
+						</label>
+						<label>
+							Show yard numbers
+							<div class="toggle-row">
+								<input id="toggle-numbers" type="checkbox" checked />
+								<span>On</span>
+							</div>
+						</label>
+						<label>
+							Show hash marks
+							<div class="toggle-row">
+								<input id="toggle-hash" type="checkbox" checked />
+								<span>On</span>
+							</div>
+						</label>
+					</div>
+				</div>
+			</div>
+		`;
+		document.body.appendChild(settingsModal);
+	}
+
+	settingsClose = document.getElementById("settings-close");
+	fieldViewSelect = document.getElementById("field-view-select");
+	toggleNumbers = document.getElementById("toggle-numbers");
+	toggleHash = document.getElementById("toggle-hash");
+}
+
+function applyFieldSettings() {
+	if (!fieldViewSelect) return;
+	scene.setFieldView({
+		viewId: fieldViewSelect.value,
+		showNumbers: toggleNumbers?.checked ?? true,
+		showHash: toggleHash?.checked ?? true
 	});
-	fieldViewInput.value = "full";
-	scene.setFieldView("full");
+}
+
+function setModalOpen(open) {
+	settingsModal?.classList.toggle("is-hidden", !open);
+}
+
+ensureSettingsUi();
+
+settingsButton?.addEventListener("click", () => setModalOpen(true));
+settingsClose?.addEventListener("click", () => setModalOpen(false));
+settingsModal?.addEventListener("click", event => {
+	if (event.target.classList.contains("modal__backdrop")) {
+		setModalOpen(false);
+	}
+});
+
+fieldViewSelect?.addEventListener("change", applyFieldSettings);
+toggleNumbers?.addEventListener("change", applyFieldSettings);
+toggleHash?.addEventListener("change", applyFieldSettings);
+
+if (fieldViewSelect) {
+	fieldViewSelect.value = "full";
+	if (toggleNumbers) toggleNumbers.checked = true;
+	if (toggleHash) toggleHash.checked = true;
+	applyFieldSettings();
+}
+
+const legacyFieldView = document.getElementById("field-view");
+if (legacyFieldView) {
+	legacyFieldView.style.display = "none";
 }
 
 function setModeButton(mode) {

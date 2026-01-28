@@ -150,6 +150,12 @@ p {
 	z-index: 10;
 }
 
+.top-bar__center {
+	flex: 1;
+	display: flex;
+	justify-content: center;
+}
+
 .top-bar__actions {
 	display: flex;
 	gap: 12px;
@@ -288,6 +294,57 @@ canvas#playbook-canvas {
 	font-family: inherit;
 }
 
+.modal {
+	position: fixed;
+	inset: 0;
+	display: grid;
+	place-items: center;
+	z-index: 40;
+}
+
+.modal.is-hidden {
+	display: none;
+}
+
+.modal__backdrop {
+	position: absolute;
+	inset: 0;
+	background: rgba(4, 6, 12, 0.6);
+	backdrop-filter: blur(4px);
+}
+
+.modal__content {
+	position: relative;
+	background: var(--panel);
+	border: 1px solid var(--border);
+	border-radius: 18px;
+	padding: 20px;
+	width: min(420px, 90vw);
+	box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+}
+
+.modal__header {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	margin-bottom: 12px;
+}
+
+.modal__body {
+	display: grid;
+	gap: 12px;
+}
+
+.toggle-row {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	background: #0b1222;
+	border: 1px solid var(--border);
+	border-radius: 10px;
+	padding: 8px 10px;
+}
+
 .button-row {
 	margin-top: 16px;
 	display: flex;
@@ -346,6 +403,10 @@ canvas#playbook-canvas {
 .text-muted {
 	color: var(--muted);
 	font-size: 12px;
+}
+
+#field-view {
+	display: none;
 }
 
 .empty-state {
