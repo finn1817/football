@@ -1,0 +1,334 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap");
+
+:root {
+	color-scheme: dark;
+	--bg: #0b111e;
+	--panel: #151b2c;
+	--panel-light: #1c2338;
+	--text: #f5f7ff;
+	--muted: #9aa6c3;
+	--primary: #4ea3ff;
+	--accent: #ffd166;
+	--danger: #ff6b6b;
+	--border: rgba(255,255,255,0.08);
+}
+
+* {
+	box-sizing: border-box;
+}
+
+body.playbook-body {
+	margin: 0;
+	font-family: "Inter", sans-serif;
+	background: radial-gradient(circle at top, #1a2340 0%, #0b111e 45%, #070b15 100%);
+	color: var(--text);
+	min-height: 100vh;
+}
+
+a {
+	color: inherit;
+	text-decoration: none;
+}
+
+h1, h2, h3 {
+	margin: 0 0 8px 0;
+}
+
+p {
+	margin: 0;
+	color: var(--muted);
+}
+
+.auth-shell {
+	max-width: 960px;
+	margin: 0 auto;
+	padding: 60px 24px;
+	display: grid;
+	gap: 32px;
+}
+
+.auth-hero {
+	background: linear-gradient(120deg, rgba(78,163,255,0.2), rgba(255,209,102,0.1));
+	border-radius: 24px;
+	padding: 48px;
+	border: 1px solid var(--border);
+}
+
+.auth-hero h1 {
+	font-size: 36px;
+	margin-bottom: 12px;
+}
+
+.auth-panel {
+	background: var(--panel);
+	border-radius: 20px;
+	border: 1px solid var(--border);
+	padding: 28px;
+}
+
+.auth-tabs {
+	display: flex;
+	gap: 12px;
+	margin-bottom: 24px;
+}
+
+.tab-button {
+	flex: 1;
+	background: var(--panel-light);
+	border: 1px solid var(--border);
+	color: var(--muted);
+	padding: 12px;
+	border-radius: 12px;
+	cursor: pointer;
+	font-weight: 600;
+}
+
+.tab-button.is-active {
+	background: var(--primary);
+	color: #08111f;
+}
+
+.auth-form {
+	display: grid;
+	gap: 16px;
+}
+
+.auth-form label {
+	display: grid;
+	gap: 6px;
+	font-size: 14px;
+	color: var(--muted);
+}
+
+.auth-form input {
+	background: #0b1222;
+	border: 1px solid var(--border);
+	border-radius: 10px;
+	padding: 10px 12px;
+	color: var(--text);
+}
+
+.primary {
+	background: var(--accent);
+	border: none;
+	padding: 12px 16px;
+	border-radius: 12px;
+	font-weight: 700;
+	cursor: pointer;
+	color: #1a1a1a;
+}
+
+.ghost {
+	background: transparent;
+	border: 1px solid var(--border);
+	padding: 10px 14px;
+	border-radius: 12px;
+	color: var(--text);
+	cursor: pointer;
+}
+
+.form-error {
+	color: var(--danger);
+	font-size: 13px;
+	min-height: 18px;
+}
+
+.is-hidden {
+	display: none;
+}
+
+.top-bar {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	padding: 24px 32px;
+	border-bottom: 1px solid var(--border);
+	background: rgba(9, 13, 24, 0.8);
+	backdrop-filter: blur(12px);
+	position: sticky;
+	top: 0;
+	z-index: 10;
+}
+
+.top-bar__actions {
+	display: flex;
+	gap: 12px;
+}
+
+.dashboard {
+	display: grid;
+	grid-template-columns: minmax(420px, 2fr) minmax(300px, 1fr);
+	gap: 24px;
+	padding: 24px 32px 48px;
+}
+
+.canvas-panel {
+	background: var(--panel);
+	border-radius: 24px;
+	padding: 20px;
+	border: 1px solid var(--border);
+	display: grid;
+	gap: 16px;
+}
+
+.canvas-toolbar {
+	display: flex;
+	justify-content: space-between;
+	flex-wrap: wrap;
+	gap: 12px;
+}
+
+.toggle-group {
+	display: flex;
+	gap: 10px;
+}
+
+.toggle {
+	background: var(--panel-light);
+	border: 1px solid var(--border);
+	color: var(--text);
+	padding: 8px 14px;
+	border-radius: 10px;
+	cursor: pointer;
+	font-weight: 600;
+}
+
+.toggle.is-active {
+	background: var(--primary);
+	color: #08111f;
+}
+
+canvas#playbook-canvas {
+	width: 100%;
+	border-radius: 18px;
+	border: 1px solid var(--border);
+	background: #2e8b57;
+}
+
+.canvas-actions {
+	display: flex;
+	gap: 12px;
+}
+
+.side-panel {
+	display: grid;
+	gap: 18px;
+}
+
+.panel-block {
+	background: var(--panel);
+	border-radius: 20px;
+	border: 1px solid var(--border);
+	padding: 18px;
+}
+
+.panel-header {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+}
+
+.player-details {
+	background: var(--panel-light);
+	border-radius: 12px;
+	padding: 12px;
+	font-size: 13px;
+	display: grid;
+	gap: 8px;
+}
+
+.player-details label {
+	display: grid;
+	gap: 4px;
+	font-size: 12px;
+	color: var(--muted);
+}
+
+.player-details input {
+	background: #0b1222;
+	border: 1px solid var(--border);
+	border-radius: 8px;
+	padding: 6px 8px;
+	color: var(--text);
+}
+
+.plays-list {
+	display: grid;
+	gap: 12px;
+	max-height: 280px;
+	overflow-y: auto;
+}
+
+.play-card {
+	background: var(--panel-light);
+	border: 1px solid var(--border);
+	border-radius: 14px;
+	padding: 12px;
+	text-align: left;
+	color: var(--text);
+	cursor: pointer;
+}
+
+.play-card__title {
+	font-weight: 700;
+	margin-bottom: 4px;
+}
+
+.play-card__meta {
+	font-size: 12px;
+	color: var(--muted);
+}
+
+.empty-state {
+	font-size: 13px;
+	color: var(--muted);
+}
+
+.stats-grid {
+	display: grid;
+	grid-template-columns: repeat(3, 1fr);
+	gap: 12px;
+	text-align: center;
+}
+
+.stats-grid span {
+	font-size: 12px;
+	color: var(--muted);
+}
+
+.stats-grid strong {
+	font-size: 18px;
+}
+
+.admin-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+	gap: 24px;
+	padding: 24px 32px;
+}
+
+.list {
+	display: grid;
+	gap: 12px;
+	max-height: 520px;
+	overflow-y: auto;
+}
+
+.list-item {
+	background: var(--panel-light);
+	border-radius: 12px;
+	padding: 12px;
+	border: 1px solid var(--border);
+	font-size: 13px;
+}
+
+.list-item strong {
+	display: block;
+	margin-bottom: 4px;
+}
+
+@media (max-width: 960px) {
+	.dashboard {
+		grid-template-columns: 1fr;
+	}
+}

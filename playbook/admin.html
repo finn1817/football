@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+	<title>Dans playbook simulator - Admin</title>
+	<link rel="stylesheet" href="css/playbook.css" />
+</head>
+<body class="playbook-body">
+	<header class="top-bar">
+		<div>
+			<h2>Admin console</h2>
+			<p id="admin-summary"></p>
+		</div>
+		<div class="top-bar__actions">
+			<a class="ghost" href="playbook.html">Back to playbook</a>
+		</div>
+	</header>
+	<main class="admin-grid">
+		<section class="panel-block">
+			<h3>Users</h3>
+			<div id="users-list" class="list"></div>
+		</section>
+		<section class="panel-block">
+			<h3>Admin logs</h3>
+			<div id="logs-list" class="list"></div>
+		</section>
+	</main>
+	<script type="module" src="js/admin.js"></script>
+</body>
+</html>

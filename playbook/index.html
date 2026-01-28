@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+	<title>Dans playbook simulator</title>
+	<link rel="stylesheet" href="css/playbook.css" />
+</head>
+<body class="playbook-body">
+	<div class="auth-shell">
+		<header class="auth-hero">
+			<h1>Dans playbook simulator</h1>
+			<p>Design modern football concepts, store your installs, and share assignments with your staff.</p>
+		</header>
+		<section class="auth-panel">
+			<div class="auth-tabs">
+				<button class="tab-button is-active" data-panel="login">Sign in</button>
+				<button class="tab-button" data-panel="signup">Create account</button>
+			</div>
+			<div class="auth-content">
+				<form id="login-form" class="auth-form">
+					<label>
+						Username
+						<input id="login-username" type="text" placeholder="coachmartin" required />
+					</label>
+					<label>
+						Password
+						<input id="login-password" type="password" required />
+					</label>
+					<button type="submit" class="primary">Sign in</button>
+					<p id="login-error" class="form-error"></p>
+				</form>
+				<form id="signup-form" class="auth-form is-hidden">
+					<label>
+						Username
+						<input id="signup-username" type="text" placeholder="coachmartin" required />
+					</label>
+					<label>
+						Password
+						<input id="signup-password" type="password" required />
+					</label>
+					<button type="submit" class="primary">Create account</button>
+					<p id="signup-error" class="form-error"></p>
+				</form>
+			</div>
+		</section>
+	</div>
+	<script type="module" src="js/index.js"></script>
+</body>
+</html>

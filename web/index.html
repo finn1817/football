@@ -856,7 +856,7 @@
 	}
 
 	function getLobInterceptorNearTarget(target) {
-		const threshold = 15;
+		const threshold = 15; // make lower or higher for interception chance (higher for more likely)
 		let closest = null;
 		let closestDist = Infinity;
 		roster.forEach(def => {
