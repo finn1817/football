@@ -2,3 +2,7 @@ WEB UPDATE: Delayed pass rush + OL slip
 - Added rush timer (random 4–10s) and rush speed multiplier for DL/MLB/S.
 - After rush starts, rushers ignore part of OL collision push (push-through factor).
 - Hooks added on snap/next play to reset rush timer.
+
+WEB UPDATE: Stacked force push-through
+- If a same-team player is directly behind a blocker, the front player gets a push boost.
+- Applies to both offense (tush push) and defense (DL breakthroughs).

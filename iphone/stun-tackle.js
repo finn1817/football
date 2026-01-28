@@ -13,6 +13,7 @@ function stunDefender(game, player) {
 }
 
 export function resolveCollisions(game) {
+	const rushActive = game.isRushActive?.() ?? false;
 	const currentCollisions = new Set();
 	for (let i = 0; i < game.roster.length; i += 1) {
 		for (let j = i + 1; j < game.roster.length; j += 1) {
@@ -51,11 +52,28 @@ export function resolveCollisions(game) {
 					continue;
 				}
 				if (playerA.team === "defense") {
-					playerA.x -= nx * overlap * 2;
-					playerA.y -= ny * overlap * 2;
+					const slip = rushActive && (game.isRusher?.(playerA) ?? false) ? (1 - game.rushPushThrough) : 1;
+					const stackBoost = game.getStackBoost?.(playerA, nx, ny) ?? 1;
+					playerA.x -= nx * overlap * 2 * slip * stackBoost;
+					playerA.y -= ny * overlap * 2 * slip * stackBoost;
 				} else if (playerB.team === "defense") {
-					playerB.x += nx * overlap * 2;
-					playerB.y += ny * overlap * 2;
+					const slip = rushActive && (game.isRusher?.(playerB) ?? false) ? (1 - game.rushPushThrough) : 1;
+					const stackBoost = game.getStackBoost?.(playerB, nx, ny) ?? 1;
+					playerB.x += nx * overlap * 2 * slip * stackBoost;
+					playerB.y += ny * overlap * 2 * slip * stackBoost;
+				}
+				if (playerA.team === "offense") {
+					const stackBoost = game.getStackBoost?.(playerA, nx, ny) ?? 1;
+					if (stackBoost > 1) {
+						playerA.x -= nx * overlap * (stackBoost - 1);
+						playerA.y -= ny * overlap * (stackBoost - 1);
+					}
+				} else if (playerB.team === "offense") {
+					const stackBoost = game.getStackBoost?.(playerB, nx, ny) ?? 1;
+					if (stackBoost > 1) {
+						playerB.x += nx * overlap * (stackBoost - 1);
+						playerB.y += ny * overlap * (stackBoost - 1);
+					}
 				}
 			}
 		}

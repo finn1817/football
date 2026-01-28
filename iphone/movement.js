@@ -35,6 +35,7 @@ export function moveOffense(game, deltaSeconds) {
 export function moveDefense(game, deltaSeconds) {
 	if (!game.state.gameActive || game.state.isRouting || game.state.isPaused) return;
 	const now = performance.now();
+	const rushActive = game.isRushActive?.() ?? false;
 	const assignments = assignDefenseTargets(game);
 	const qb = game.roster.find(player => player.role === "QB" && player.team === "offense");
 	const chaseTarget = game.ballCarrier ?? game.ballFlight?.target ?? qb;
@@ -49,7 +50,7 @@ export function moveDefense(game, deltaSeconds) {
 			target = game.roster.find(player => player.id === assignedId) ?? null;
 		}
 		if (defender.role === "MLB" || defender.role === "S") {
-			target = chaseTarget;
+			target = rushActive ? (qb ?? chaseTarget) : chaseTarget;
 		}
 		if (defender.role === "DL") {
 			target = qb ?? chaseTarget;
@@ -62,7 +63,8 @@ export function moveDefense(game, deltaSeconds) {
 		const dy = target.y - defender.y;
 		const dist = Math.hypot(dx, dy);
 		if (dist === 0) return;
-		const speedPx = defender.speedYps * game.pixelsPerYard;
+		const rushBoost = rushActive && (game.isRusher?.(defender) ?? false) ? game.rushSpeedMultiplier : 1;
+		const speedPx = defender.speedYps * game.pixelsPerYard * rushBoost;
 		const step = speedPx * deltaSeconds;
 		if (dist <= step) {
 			defender.x = target.x;

@@ -72,10 +72,44 @@ const game = {
 	lineOfScrimmageY: 0,
 	prepRemaining: 6,
 	lastFrameTime: null,
+	playClockSeconds: 0,
+	rushDelaySeconds: 6,
+	rushDelayMin: 4,
+	rushDelayMax: 10,
+	rushSpeedMultiplier: 1.35,
+	rushPushThrough: 0.55,
 	previousCollisions: new Set(),
 	defenseStunUntil: new Map(),
 	tackleContact: new Map(),
 	tackleHoldSeconds: 1.0,
+	resetRushClock() {
+		this.playClockSeconds = 0;
+		this.rushDelaySeconds = this.rushDelayMin + Math.random() * (this.rushDelayMax - this.rushDelayMin);
+	},
+	isRushActive() {
+		return this.state.gameActive && this.playClockSeconds >= this.rushDelaySeconds;
+	},
+	isRusher(player) {
+		return player?.team === "defense" && (player.role === "DL" || player.role === "MLB" || player.role === "S");
+	},
+	getStackBoost(player, nx, ny) {
+		const backDepth = 26;
+		const sideTol = 14;
+		const stackDirX = -nx;
+		const stackDirY = -ny;
+		for (const teammate of this.roster) {
+			if (teammate === player) continue;
+			if (teammate.team !== player.team) continue;
+			const dx = teammate.x - player.x;
+			const dy = teammate.y - player.y;
+			const depth = dx * stackDirX + dy * stackDirY;
+			const lateral = Math.abs(dx * nx + dy * ny);
+			if (depth > 4 && depth <= backDepth && lateral <= sideTol) {
+				return 1.6;
+			}
+		}
+		return 1;
+	},
 	setTimerText(text) {
 		if (timerLabel) timerLabel.textContent = text;
 	},
@@ -182,6 +216,7 @@ function initializeGameState() {
 	game.setNextPlayVisible(false);
 	game.setTimerText("PREP: 6");
 	game.setSubmitEnabled(false);
+	game.resetRushClock();
 }
 
 
@@ -442,6 +477,9 @@ function render(timestamp) {
 	if (!game.lastFrameTime) game.lastFrameTime = timestamp;
 	const deltaSeconds = Math.min(0.05, (timestamp - game.lastFrameTime) / 1000);
 	game.lastFrameTime = timestamp;
+	if (game.state.gameActive && !game.state.isPaused) {
+		game.playClockSeconds += deltaSeconds;
+	}
 
 	updateTimer(deltaSeconds);
 	advanceBallFlight(game);

@@ -855,22 +855,6 @@
 		return closest;
 	}
 
-	function getLobInterceptorNearTarget(target) {
-		const threshold = 18;
-		let closest = null;
-		let closestDist = Infinity;
-		roster.forEach(def => {
-			if (def.team !== "defense") return;
-			if (def.role === "DL") return;
-			const dist = Math.hypot(def.x - target.x, def.y - target.y);
-			if (dist <= threshold && dist < closestDist) {
-				closestDist = dist;
-				closest = def;
-			}
-		});
-		return closest;
-	}
-
 	function pointToSegmentDistance(px, py, x1, y1, x2, y2) {
 		const dx = x2 - x1;
 		const dy = y2 - y1;
@@ -924,15 +908,6 @@
 		const arcOffset = ballFlight.lob ? Math.sin(Math.PI * progress) * ballFlight.arcHeight : 0;
 		ballFlight.x = lerp(ballFlight.startX, endX, progress);
 		ballFlight.y = lerp(ballFlight.startY, endY, progress) - arcOffset;
-		if (ballFlight.lob && !ballFlight.interceptTarget) {
-			const timeToCatch = (1 - progress) / ballFlight.speed;
-			if (timeToCatch <= 0.5) {
-				const lateInterceptor = getLobInterceptorNearTarget(ballFlight.target);
-				if (lateInterceptor) {
-					ballFlight.interceptTarget = lateInterceptor;
-				}
-			}
-		}
 		if (progress >= 1) {
 			if (ballFlight.interceptTarget) {
 				ballFlight.interceptTarget.hasBall = true;

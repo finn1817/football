@@ -10,6 +10,9 @@ export function startPlay(game) {
 		game.downsState.lineToGainY = game.lineOfScrimmageY - (10 * game.pixelsPerYard);
 	}
 	game.updateDownsPanel();
+	if (typeof game.resetRushClock === "function") {
+		game.resetRushClock();
+	}
 }
 
 export function resetForNextPlay(game) {
@@ -37,6 +40,9 @@ export function resetForNextPlay(game) {
 	game.setNextPlayVisible(false);
 	game.setTimerText("PREP: 6");
 	game.updateDownsPanel();
+	if (typeof game.resetRushClock === "function") {
+		game.resetRushClock();
+	}
 	if (typeof game.onPlayReset === "function") {
 		game.onPlayReset();
 	}
