@@ -35,6 +35,7 @@ const clearAllRoutesButton = document.getElementById("clear-all-routes");
 const playNameInput = document.getElementById("play-name");
 const playTypeInput = document.getElementById("play-type");
 const playDescriptionInput = document.getElementById("play-description");
+const fieldViewInput = document.getElementById("field-view");
 const shareCode = document.getElementById("share-code");
 const simulateToggle = document.getElementById("simulate-toggle");
 const resetRosterButton = document.getElementById("reset-roster");
@@ -132,6 +133,14 @@ const scene = createPlaybookScene({
 	canvas,
 	onSelectPlayer: renderPlayerDetails
 });
+
+if (fieldViewInput) {
+	fieldViewInput.addEventListener("change", () => {
+		scene.setFieldView(fieldViewInput.value);
+	});
+	fieldViewInput.value = "full";
+	scene.setFieldView("full");
+}
 
 function setModeButton(mode) {
 	document.querySelectorAll("[data-mode]").forEach(button => {

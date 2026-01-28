@@ -1,7 +1,7 @@
 export const FIELD_CONFIG = {
 	width: 900,
 	height: 600,
-	endzoneHeight: 40,
+	endzoneHeight: 50,
 	yardsPerField: 100
 };
 
