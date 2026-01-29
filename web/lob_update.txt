@@ -1,0 +1,88 @@
+To make lob passes interceptable in a realistic way, you need to change how the game checks for interceptions during the ball's flight. Currently, your code for a lob pass ignores anyone on the line and only checks for a "late interceptor" right at the end.
+
+To allow "overhead" throws, we should check the distance between a defender and the ball, but only if the ball is low enough for them to reach.
+
+The Logic Change
+1. Ball Height: We use the arcOffset (the sine wave) as a proxy for height.
+2. Reach Threshold: If the ball is higher than, say, 30 pixels, it's "over the head" of the defense.
+3. The Window: Defenders can only intercept a lob at the very start (the release) or the very end (the catch), or if it's a very shallow lob.
+
+1. Update advanceBallFlight
+Replace your current if (ballFlight.lob ...) block inside advanceBallFlight with this logic. This makes the ball "physical" throughout its entire arc.
+
+```
+
+function advanceBallFlight() {
+    if (!ballFlight?.active) return;
+    const progress = Math.min(1, ballFlight.progress + ballFlight.speed);
+    ballFlight.progress = progress;
+
+    const activeTarget = ballFlight.target; // Lob always goes to target
+    const endX = activeTarget.x;
+    const endY = activeTarget.y;
+    
+    // Calculate Height
+    const arcOffset = ballFlight.lob ? Math.sin(Math.PI * progress) * ballFlight.arcHeight : 0;
+    
+    ballFlight.x = lerp(ballFlight.startX, endX, progress);
+    ballFlight.y = lerp(ballFlight.startY, endY, progress) - arcOffset;
+
+    // --- REALISTIC INTERCEPTION LOGIC ---
+    // Reachable height: only check for interceptions if ball is low (near start or end)
+    const reachableHeight = 35; 
+    if (arcOffset < reachableHeight) {
+        roster.forEach(def => {
+            if (def.team !== "defense") return;
+            if (def.role === "DL" && progress > 0.2) return; // DL can't catch deep balls
+
+            const dist = Math.hypot(def.x - ballFlight.x, def.y - (ballFlight.y + arcOffset));
+            
+            // If defender is close to the ball's ground shadow while ball is low
+            if (dist < 20) {
+                ballFlight.interceptTarget = def;
+                progress = 1; // Trigger catch immediately
+            }
+        });
+    }
+
+    if (progress >= 1) {
+        if (ballFlight.interceptTarget) {
+            ballFlight.interceptTarget.hasBall = true;
+            ballCarrier = ballFlight.interceptTarget;
+            state.gameActive = false;
+            const timer = document.getElementById("timer");
+            if (timer) timer.textContent = "INTERCEPTED";
+        } else {
+            ballFlight.target.hasBall = true;
+            ballCarrier = ballFlight.target;
+        }
+        ballFlight.active = false;
+    }
+}
+
+```
+
+2. Visual Polish: Shadow
+To make it feel realistic, players need to see where the ball "is" on the ground so they know if they are under it. Add a small shadow in your drawPlayers function.
+- Inside drawPlayers(), right before the ballFlight block:
+
+```
+
+if (ballFlight?.active && ballFlight.lob) {
+    // Draw the shadow (the ground position)
+    ctx.fillStyle = "rgba(0,0,0,0.3)";
+    const groundY = lerp(ballFlight.startY, ballFlight.target.y, ballFlight.progress);
+    ctx.beginPath();
+    ctx.arc(ballFlight.x, groundY, 10, 0, Math.PI * 2);
+    ctx.fill();
+}
+
+```
+
+ALSO:
+- Think of a way to add a "Jump" mechanic for the receivers so they have a better chance of winning these "50/50" lob balls.
+
+How this feels in-game:
+- Bullet Pass: Still gets intercepted by anyone standing in the line of fire.
+- Lob Pass: If you throw over a linebacker's head, the arcOffset will be high (e.g., 100px), and the linebacker's distance check will ignore it.
+- The Catch Point: As the ball comes back down (progress > 0.8), the arcOffset drops below 35. If a safety is standing right on your receiver, they now have a realistic chance to "jump" and snag the ball.

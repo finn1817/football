@@ -547,6 +547,9 @@
 			this.speedYps = 6.7; // yards per second
 			this.hasBall = (role === "QB");
 			this.isDead = false;
+			this.isJumping = false;
+			this.jumpStart = 0;
+			this.jumpCooldownUntil = 0;
 		}
 
 		reset() {
@@ -556,21 +559,24 @@
 			this.pathIndex = 0;
 			this.isDead = false;
 			this.hasBall = (this.role === "QB");
+			this.isJumping = false;
+			this.jumpStart = 0;
+			this.jumpCooldownUntil = 0;
 		}
 	}
 
 	let roster = [];
 
 	const SPEED_YPS = {
-		QB: 5.8,
-		RB: 6.4,
+		QB: 6.0,
+		RB: 6.5,
 		WR: 6.7,
 		SL: 6.6,
 		TE: 6.1,
 		OL: 5.6,
 		MLB: 6.0,
 		LB: 6.1,
-		DL: 5.4,
+		DL: 5.5, // was 5.4
 		CB: 6.6,
 		S: 6.4
 	};
@@ -718,16 +724,21 @@
 	const keyHoldStart = {};
 	const collisionDistance = 30;
 	const tackleDistance = 22;
+	const JUMP_DURATION_MS = 350;
+	const JUMP_COOLDOWN_MS = 900;
+	const JUMP_HEIGHT = 16;
+	const JUMP_TRIGGER_RADIUS = 30;
+	const JUMP_REACH_BONUS = 8;
 	let defenseAssigned = false;
-	const tackleHoldSeconds = 1.0;
+	const tackleHoldSeconds = 0.8; // was 1.0
 	const tackleContact = new Map();
 	const defenseStunUntil = new Map();
 	const DEFENDER_STUN_MS = 1000;
 	let previousCollisions = new Set();
-	const RUSH_DELAY_MIN = 4;
-	const RUSH_DELAY_MAX = 10;
-	const RUSH_SPEED_MULTIPLIER = 1.35;
-	const RUSH_PUSH_THROUGH = 0.55;
+	const RUSH_DELAY_MIN = 2; // was 4
+	const RUSH_DELAY_MAX = 5; // was 10
+	const RUSH_SPEED_MULTIPLIER = 1.5; // was 1.35
+	const RUSH_PUSH_THROUGH = 0.8; // was 0.55;
 	let playClockSeconds = 0;
 	let rushDelaySeconds = 6;
 
@@ -916,30 +927,54 @@
 
 	function advanceBallFlight() {
 		if (!ballFlight?.active) return;
-		const progress = Math.min(1, ballFlight.progress + ballFlight.speed);
+		let progress = Math.min(1, ballFlight.progress + ballFlight.speed);
 		ballFlight.progress = progress;
-		const activeTarget = ballFlight.interceptTarget ?? ballFlight.target;
+
+		const activeTarget = ballFlight.lob ? ballFlight.target : (ballFlight.interceptTarget ?? ballFlight.target);
 		const endX = activeTarget.x;
 		const endY = activeTarget.y;
 		const arcOffset = ballFlight.lob ? Math.sin(Math.PI * progress) * ballFlight.arcHeight : 0;
 		ballFlight.x = lerp(ballFlight.startX, endX, progress);
 		ballFlight.y = lerp(ballFlight.startY, endY, progress) - arcOffset;
-		if (ballFlight.lob && !ballFlight.interceptTarget) {
-			const timeToCatch = (1 - progress) / ballFlight.speed;
-			if (timeToCatch <= 0.5) {
-				const lateInterceptor = getLobInterceptorNearTarget(ballFlight.target);
-				if (lateInterceptor) {
-					ballFlight.interceptTarget = lateInterceptor;
+		const groundY = lerp(ballFlight.startY, endY, progress);
+
+		const reachableHeight = 35;
+		if (ballFlight.lob && arcOffset < reachableHeight) {
+			for (const def of roster) {
+				if (def.team !== "defense") continue;
+				if (def.role === "DL" && progress > 0.2) continue;
+				const dist = Math.hypot(def.x - ballFlight.x, def.y - groundY);
+				if (dist < 20) {
+					ballFlight.interceptTarget = def;
+					progress = 1;
+					ballFlight.progress = 1;
+					break;
 				}
 			}
 		}
+
+		if (ballFlight.lob && progress > 0.7 && arcOffset < reachableHeight + 10) {
+			for (const player of roster) {
+				if (!canAutoJump(player)) continue;
+				const dist = Math.hypot(player.x - ballFlight.x, player.y - groundY);
+				if (dist <= JUMP_TRIGGER_RADIUS) {
+					triggerJump(player);
+				}
+			}
+		}
+
 		if (progress >= 1) {
 			if (ballFlight.interceptTarget) {
-				ballFlight.interceptTarget.hasBall = true;
-				ballCarrier = ballFlight.interceptTarget;
-				state.gameActive = false;
-				const timer = document.getElementById("timer");
-				if (timer) timer.textContent = "INTERCEPTED";
+				const contestWinner = (ballFlight.lob && ballFlight.target?.team === "offense")
+					? resolveContestedCatch(ballFlight.interceptTarget, ballFlight.target, ballFlight.x, groundY)
+					: ballFlight.interceptTarget;
+				contestWinner.hasBall = true;
+				ballCarrier = contestWinner;
+				if (contestWinner.team === "defense") {
+					state.gameActive = false;
+					const timer = document.getElementById("timer");
+					if (timer) timer.textContent = "INTERCEPTED";
+				}
 			} else {
 				ballFlight.target.hasBall = true;
 				ballCarrier = ballFlight.target;
@@ -970,6 +1005,42 @@
 
 	function lerp(a, b, t) {
 		return a + (b - a) * t;
+	}
+
+	function getJumpOffset(player) {
+		if (!player?.isJumping) return 0;
+		const now = performance.now();
+		const elapsed = now - (player.jumpStart ?? 0);
+		if (elapsed >= JUMP_DURATION_MS) {
+			player.isJumping = false;
+			return 0;
+		}
+		const t = elapsed / JUMP_DURATION_MS;
+		return Math.sin(Math.PI * t) * JUMP_HEIGHT;
+	}
+
+	function canAutoJump(player) {
+		if (!player || player.team !== "offense") return false;
+		return player.role === "WR" || player.role === "TE" || player.role === "RB" || player.role === "QB";
+	}
+
+	function triggerJump(player) {
+		if (!canAutoJump(player)) return;
+		const now = performance.now();
+		if (now < (player.jumpCooldownUntil ?? 0)) return;
+		player.isJumping = true;
+		player.jumpStart = now;
+		player.jumpCooldownUntil = now + JUMP_COOLDOWN_MS;
+	}
+
+	function resolveContestedCatch(interceptor, receiver, groundX, groundY) {
+		if (!interceptor || !receiver) return interceptor ?? receiver;
+		let defDist = Math.hypot(interceptor.x - groundX, interceptor.y - groundY);
+		let offDist = Math.hypot(receiver.x - groundX, receiver.y - groundY);
+		if (receiver.isJumping) {
+			offDist = Math.max(0, offDist - JUMP_REACH_BONUS);
+		}
+		return offDist <= defDist ? receiver : interceptor;
 	}
 
 	function handleThrowKeyDown(key) {
@@ -1208,7 +1279,17 @@
 	}
 
 	function drawPlayers() {
+		if (ballFlight?.active && ballFlight.lob) {
+			ctx.fillStyle = "rgba(0,0,0,0.3)";
+			const groundY = lerp(ballFlight.startY, ballFlight.target.y, ballFlight.progress);
+			ctx.beginPath();
+			ctx.arc(ballFlight.x, groundY, 10, 0, Math.PI * 2);
+			ctx.fill();
+		}
+
 		roster.forEach(p => {
+			const jumpOffset = getJumpOffset(p);
+			const drawY = p.y - jumpOffset;
 			ctx.fillStyle = "rgba(0,0,0,0.5)";
 			ctx.beginPath();
 			ctx.arc(p.x + 2, p.y + 2, 15, 0, Math.PI * 2);
@@ -1226,20 +1307,20 @@
 			}
 			ctx.fillStyle = fillColor;
 			ctx.beginPath();
-			ctx.arc(p.x, p.y, 15, 0, Math.PI * 2);
+			ctx.arc(p.x, drawY, 15, 0, Math.PI * 2);
 			ctx.fill();
 
 			if (p.hasBall) {
 				ctx.fillStyle = "brown";
 				ctx.beginPath();
-				ctx.arc(p.x, p.y, 8, 0, Math.PI * 2);
+				ctx.arc(p.x, drawY, 8, 0, Math.PI * 2);
 				ctx.fill();
 			}
 
 			ctx.fillStyle = "white";
 			ctx.font = "10px Arial";
 			ctx.textAlign = "center";
-			ctx.fillText(p.role, p.x, p.y + 4);
+			ctx.fillText(p.role, p.x, drawY + 4);
 		});
 
 		if (ballFlight?.active) {
