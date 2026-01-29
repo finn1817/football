@@ -238,6 +238,9 @@
 		<div id="ui-layer">
 			<div style="text-align:center;">
 				<h1>POCKET BOWL</h1>
+				<div id="difficultyIndicator" style="color: #aaa; font-size: 14px; margin-top: 5px; text-transform: uppercase; letter-spacing: 1px;">
+					Difficulty: Medium
+				</div>
 				<div id="timer">PREP: 5</div>
 			</div>
 		</div>
@@ -269,6 +272,14 @@
 		</div>
 		<div id="settingsModal">
 			<div><strong>Settings</strong></div>
+			<div class="settingsRow">
+				<label for="difficultySelect">Difficulty</label>
+				<select id="difficultySelect" style="padding:8px; background:#1a1a1a; color:white; border:1px solid #2c2c2c;">
+					<option value="1">1. Easy</option>
+					<option value="2">2. Medium</option>
+					<option value="3">3. Hard</option>
+				</select>
+			</div>
 			<div class="settingsRow">
 				<label for="yardLineInput">Start play at which yard line? (0-100)</label>
 				<input id="yardLineInput" type="number" min="0" max="100" value="25" />
@@ -332,6 +343,18 @@
 		ytgLabel.textContent = `Yards to Go: ${ytg}`;
 		ballLabel.textContent = `Ball: ${Math.round(yToYardLine(lineY))}`;
 		if (scoreLabel) scoreLabel.textContent = `Score: ${window.gameStats.score}`;
+	};
+
+	window.updateDifficultyUI = () => {
+		const indicator = document.getElementById("difficultyIndicator");
+		if (indicator) {
+			const diffName = DIFFICULTY_CONFIG[currentDifficulty].name;
+			indicator.textContent = `Difficulty: ${diffName}`;
+
+			if (currentDifficulty == 3) indicator.style.color = "#ff4a4a";
+			else if (currentDifficulty == 2) indicator.style.color = "#ffae4a";
+			else indicator.style.color = "#4aff4a";
+		}
 	};
 
 	function setNextPlayVisible(visible) {
@@ -425,6 +448,12 @@
 			}
 			snapLocked = false;
 		}
+		const diffSelect = document.getElementById("difficultySelect");
+		currentDifficulty = Number(diffSelect.value);
+		localStorage.setItem("retry-difficulty", String(currentDifficulty));
+		applySpeeds();
+		settingsModal.classList.remove("active");
+		window.updateDifficultyUI();
 	});
 
 
@@ -520,6 +549,13 @@
 
 <!-- Core Data Models (Step 2) -->
 <script>
+	const DIFFICULTY_CONFIG = {
+		1: { name: "Easy", defSpeedMult: 0.9, rushDelayMin: 4, rushDelayMax: 8, rushPushThrough: 0.4, tackleHold: 1.2, interceptionRadius: 10 },
+		2: { name: "Medium", defSpeedMult: 1.15, rushDelayMin: 2, rushDelayMax: 5, rushPushThrough: 0.8, tackleHold: 0.8, interceptionRadius: 20 },
+		3: { name: "Hard", defSpeedMult: 1.35, rushDelayMin: 1, rushDelayMax: 2.5, rushPushThrough: 1.0, tackleHold: 0.4, interceptionRadius: 35 }
+	};
+	let currentDifficulty = Number(localStorage.getItem("retry-difficulty") ?? "2");
+
 	const FIELD_WIDTH = 540;
 	const FIELD_HEIGHT = 900;
 	const ENDZONE_HEIGHT = 50;
@@ -631,8 +667,10 @@
 	}
 
 	function applySpeeds() {
+		const cfg = DIFFICULTY_CONFIG[currentDifficulty];
 		roster.forEach(player => {
-			player.speedYps = (SPEED_YPS[player.role] ?? 6.0) * SPEED_MULTIPLIER;
+			const mult = player.team === "defense" ? cfg.defSpeedMult : SPEED_MULTIPLIER;
+			player.speedYps = (SPEED_YPS[player.role] ?? 6.0) * mult;
 		});
 	}
 
@@ -743,8 +781,9 @@
 	let rushDelaySeconds = 6;
 
 	function resetRushClock() {
+		const cfg = DIFFICULTY_CONFIG[currentDifficulty];
 		playClockSeconds = 0;
-		rushDelaySeconds = RUSH_DELAY_MIN + Math.random() * (RUSH_DELAY_MAX - RUSH_DELAY_MIN);
+		rushDelaySeconds = cfg.rushDelayMin + Math.random() * (cfg.rushDelayMax - cfg.rushDelayMin);
 	}
 
 	function isRushActive() {
@@ -1201,7 +1240,7 @@
 				activeIds.add(defender.id);
 				const startedAt = tackleContact.get(defender.id) ?? now;
 				tackleContact.set(defender.id, startedAt);
-				return (now - startedAt) / 1000 >= tackleHoldSeconds;
+				return (now - startedAt) / 1000 >= DIFFICULTY_CONFIG[currentDifficulty].tackleHold;
 			}
 			return false;
 		});
@@ -1481,6 +1520,7 @@
 	}
 
 	render(); // going even further back
+	window.updateDifficultyUI();
 </script>
 
 </body>
