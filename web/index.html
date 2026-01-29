@@ -1232,6 +1232,22 @@
 		if (!state.gameActive || state.isPaused) return;
 		if (!ballCarrier || ballCarrier.team !== "offense") return;
 		const now = performance.now();
+		const getTackleHoldMultiplier = (role) => {
+			switch (role) {
+				case "QB":
+					return 0.7;
+				case "RB":
+					return 1.2;
+				case "WR":
+					return 1.25;
+				case "TE":
+					return 1.15;
+				default:
+					return 1;
+			}
+		};
+		const baseHold = DIFFICULTY_CONFIG[currentDifficulty].tackleHold;
+		const roleHold = baseHold * getTackleHoldMultiplier(ballCarrier.role);
 		const activeIds = new Set();
 		const tackled = roster.some(defender => {
 			if (defender.team !== "defense") return false;
@@ -1240,7 +1256,7 @@
 				activeIds.add(defender.id);
 				const startedAt = tackleContact.get(defender.id) ?? now;
 				tackleContact.set(defender.id, startedAt);
-				return (now - startedAt) / 1000 >= DIFFICULTY_CONFIG[currentDifficulty].tackleHold;
+				return (now - startedAt) / 1000 >= roleHold;
 			}
 			return false;
 		});
