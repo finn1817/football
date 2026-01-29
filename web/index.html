@@ -1188,25 +1188,49 @@
 		const assignments = assignDefenseTargets();
 		const losY = getLineOfScrimmageY();
 		const qb = roster.find(player => player.role === "QB" && player.team === "offense");
-		const chaseTarget = ballCarrier ?? ballFlight?.target ?? qb;
+		const chaseTarget = ballFlight?.active ? ballFlight.target : (ballCarrier ?? qb);
+		const defensePlayers = roster.filter(player => player.team === "defense");
+		const deepestDefenders = defensePlayers.slice().sort((a, b) => a.y - b.y).slice(0, 2);
+		const deepestIds = new Set(deepestDefenders.map(def => def.id));
+		const zoneTop = FIELD_TOP_Y + 30;
+		const zoneBottom = losY - 80;
 
 		roster.forEach(defender => {
 			if (defender.team !== "defense") return;
 			const stunnedUntil = defenseStunUntil.get(defender.id) ?? 0;
 			if (stunnedUntil > now) return;
 			let target = null;
-			if (defender.role === "CB" || defender.role === "LB") {
-				const assignedId = assignments.get(defender.id);
-				target = roster.find(player => player.id === assignedId) ?? null;
-			}
-			if (defender.role === "MLB") {
-				target = rushActive ? (qb ?? chaseTarget) : chaseTarget;
-			}
-			if (defender.role === "S") {
-				target = rushActive ? (qb ?? chaseTarget) : chaseTarget;
-			}
-			if (defender.role === "DL") {
-				target = qb ?? chaseTarget;
+			if (ballFlight?.active && chaseTarget) {
+				target = chaseTarget;
+			} else {
+				if (deepestIds.has(defender.id)) {
+					const assignedId = assignments.get(defender.id);
+					const assignedTarget = roster.find(player => player.id === assignedId) ?? null;
+					const anchorX = defender.startX;
+					const anchorY = Math.max(zoneTop, Math.min(zoneBottom, Math.min(defender.startY, losY - 140)));
+					if (assignedTarget && assignedTarget.y < anchorY - 60) {
+						target = assignedTarget;
+					} else if (assignedTarget) {
+						const shadeX = anchorX + (assignedTarget.x - anchorX) * 0.35;
+						target = { x: shadeX, y: anchorY };
+					} else {
+						target = { x: anchorX, y: anchorY };
+					}
+				} else {
+					if (defender.role === "CB" || defender.role === "LB") {
+						const assignedId = assignments.get(defender.id);
+						target = roster.find(player => player.id === assignedId) ?? null;
+					}
+					if (defender.role === "MLB") {
+						target = rushActive ? (qb ?? chaseTarget) : chaseTarget;
+					}
+					if (defender.role === "S") {
+						target = rushActive ? (qb ?? chaseTarget) : chaseTarget;
+					}
+					if (defender.role === "DL") {
+						target = qb ?? chaseTarget;
+					}
+				}
 			}
 			if (!target) {
 				target = { x: defender.x, y: losY - 60 };
