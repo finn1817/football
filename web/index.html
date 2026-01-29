@@ -940,11 +940,16 @@
 
 		const reachableHeight = 35;
 		if (ballFlight.lob && arcOffset < reachableHeight) {
+			const shallowLob = ballFlight.arcHeight <= 60;
 			for (const def of roster) {
 				if (def.team !== "defense") continue;
 				if (def.role === "DL" && progress > 0.2) continue;
-				const dist = Math.hypot(def.x - ballFlight.x, def.y - groundY);
-				if (dist < 20) {
+				const distToShadow = Math.hypot(def.x - ballFlight.x, def.y - groundY);
+				const distToStart = Math.hypot(def.x - ballFlight.startX, def.y - ballFlight.startY);
+				const distToTarget = Math.hypot(def.x - ballFlight.target.x, def.y - ballFlight.target.y);
+				const inEarlyWindow = progress < 0.12 && distToStart < 24;
+				const inLateWindow = progress > 0.75 && distToTarget < 30;
+				if (distToShadow < 20 && (shallowLob || inEarlyWindow || inLateWindow)) {
 					ballFlight.interceptTarget = def;
 					progress = 1;
 					ballFlight.progress = 1;
