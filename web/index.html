@@ -1311,7 +1311,9 @@
 			const stunnedUntil = defenseStunUntil.get(defender.id) ?? 0;
 			if (stunnedUntil > now) return;
 			let target = null;
-			if ((passAttempted || ballFlight?.active || qbRunning) && chaseTarget) {
+			if (defender.role === "DL") {
+				target = chaseTarget;
+			} else if ((passAttempted || ballFlight?.active || qbRunning) && chaseTarget) {
 				target = chaseTarget;
 			} else {
 				if (scheme === "zone" || (scheme === "blitz" && deepestIds.has(defender.id))) {
@@ -1343,7 +1345,7 @@
 							target = rushActive ? (qb ?? chaseTarget) : chaseTarget;
 						}
 						if (defender.role === "DL") {
-							target = qb ?? chaseTarget;
+							target = chaseTarget;
 						}
 					}
 				}
@@ -1549,24 +1551,6 @@
 		if (!state.gameActive || state.isRouting || state.isPaused) return;
 		roster.forEach(player => {
 			if (player.team !== "offense") return;
-			if (player.role === "OL") {
-				const chase = ballCarrier && ballCarrier.team === "offense" ? ballCarrier : (roster.find(p => p.role === "QB" && p.team === "offense") ?? null);
-				if (!chase || chase === player) return;
-				const dx = chase.x - player.x;
-				const dy = chase.y - player.y;
-				const dist = Math.hypot(dx, dy);
-				if (dist === 0) return;
-				const speedPx = player.speedYps * pixelsPerYard;
-				const step = speedPx * deltaSeconds;
-				if (dist <= step) {
-					player.x = chase.x;
-					player.y = chase.y;
-				} else {
-					player.x += (dx / dist) * step;
-					player.y += (dy / dist) * step;
-				}
-				return;
-			}
 			if (!player.path || player.path.length < 2) return;
 			if (player.pathIndex >= player.path.length) return;
 			let target = player.path[player.pathIndex];
