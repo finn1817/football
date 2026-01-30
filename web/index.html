@@ -364,6 +364,7 @@
 	let autoNextTimeout = null;
 
 	function beginNextPlay() {
+		defenseScheme = "";
 		const spotY = window.downsState.ballSpotY ?? getLineOfScrimmageY();
 		const yardLine = Math.round(yToYardLine(spotY));
 		localStorage.setItem("retry-yard-line", String(yardLine));
@@ -422,6 +423,7 @@
 			if (typeof window.onRosterChanged === "function") {
 				window.onRosterChanged();
 			}
+			setDefenseScheme();
 			resetRushClock();
 			window.retryState.prepPhase = false;
 			window.retryState.gameActive = true;
@@ -1209,6 +1211,57 @@
 		return assignments;
 	}
 
+	function getCoverageAssignments() {
+		const assignments = new Map();
+		const cbs = getDefenseByRole("CB").sort((a, b) => a.x - b.x);
+		const lbs = getDefenseByRole("LB").sort((a, b) => a.x - b.x);
+		const tes = getOffenseByRole("TE").sort((a, b) => a.x - b.x);
+		const rbs = getOffenseByRole("RB").sort((a, b) => a.x - b.x);
+		const wrs = getOffenseByRole("WR").sort((a, b) => a.x - b.x);
+		const used = new Set();
+		const allReceivers = [...wrs, ...tes, ...rbs];
+		const coverageDefs = [...cbs, ...lbs];
+		coverageDefs.forEach(def => {
+			if (!allReceivers.length) return;
+			let best = null;
+			let bestDist = Infinity;
+			allReceivers.forEach(rec => {
+				if (used.has(rec.id)) return;
+				const dist = Math.hypot(def.x - rec.x, def.y - rec.y);
+				if (dist < bestDist) {
+					bestDist = dist;
+					best = rec;
+				}
+			});
+			if (!best) {
+				allReceivers.forEach(rec => {
+					const dist = Math.hypot(def.x - rec.x, def.y - rec.y);
+					if (dist < bestDist) {
+						bestDist = dist;
+						best = rec;
+					}
+				});
+			}
+			if (best) {
+				assignments.set(def.id, best.id);
+				used.add(best.id);
+			}
+		});
+		return assignments;
+	}
+
+	function getDefenseScheme() {
+		if (defenseScheme) return defenseScheme;
+		return "man";
+	}
+
+	function setDefenseScheme() {
+		const roll = Math.random();
+		if (roll < 0.34) defenseScheme = "man";
+		else if (roll < 0.67) defenseScheme = "zone";
+		else defenseScheme = "blitz";
+	}
+
 	function moveDefense(deltaSeconds) {
 		if (!state.gameActive || state.isRouting || state.isPaused) return;
 		if (!defenseAssigned) {
@@ -1216,7 +1269,7 @@
 		}
 		const now = performance.now();
 		const rushActive = isRushActive();
-		const assignments = assignDefenseTargets();
+		const assignments = getCoverageAssignments();
 		const losY = getLineOfScrimmageY();
 		const qb = roster.find(player => player.role === "QB" && player.team === "offense");
 		const chaseTarget = ballFlight?.active ? ballFlight.target : (ballCarrier ?? qb);
@@ -1225,6 +1278,7 @@
 		const deepestIds = new Set(deepestDefenders.map(def => def.id));
 		const zoneTop = FIELD_TOP_Y + 30;
 		const zoneBottom = losY - 80;
+		const scheme = getDefenseScheme();
 
 		roster.forEach(defender => {
 			if (defender.team !== "defense") return;
@@ -1234,7 +1288,7 @@
 			if (ballFlight?.active && chaseTarget) {
 				target = chaseTarget;
 			} else {
-				if (deepestIds.has(defender.id)) {
+				if (scheme === "zone" || (scheme === "blitz" && deepestIds.has(defender.id))) {
 					const assignedId = assignments.get(defender.id);
 					const assignedTarget = roster.find(player => player.id === assignedId) ?? null;
 					const anchorX = defender.startX;
@@ -1252,14 +1306,18 @@
 						const assignedId = assignments.get(defender.id);
 						target = roster.find(player => player.id === assignedId) ?? null;
 					}
-					if (defender.role === "MLB") {
-						target = rushActive ? (qb ?? chaseTarget) : chaseTarget;
-					}
-					if (defender.role === "S") {
-						target = rushActive ? (qb ?? chaseTarget) : chaseTarget;
-					}
-					if (defender.role === "DL") {
+					if (scheme === "blitz" && (defender.role === "MLB" || defender.role === "S" || defender.role === "DL")) {
 						target = qb ?? chaseTarget;
+					} else {
+						if (defender.role === "MLB") {
+							target = rushActive ? (qb ?? chaseTarget) : chaseTarget;
+						}
+						if (defender.role === "S") {
+							target = rushActive ? (qb ?? chaseTarget) : chaseTarget;
+						}
+						if (defender.role === "DL") {
+							target = qb ?? chaseTarget;
+						}
 					}
 				}
 			}
