@@ -365,6 +365,11 @@
 
 	function beginNextPlay() {
 		defenseScheme = "";
+		passAttempted = false;
+		defenseAssigned = false;
+		tackleContact.clear();
+		defenseStunUntil.clear();
+		previousCollisions = new Set();
 		const spotY = window.downsState.ballSpotY ?? getLineOfScrimmageY();
 		const yardLine = Math.round(yToYardLine(spotY));
 		localStorage.setItem("retry-yard-line", String(yardLine));
@@ -424,6 +429,7 @@
 				window.onRosterChanged();
 			}
 			setDefenseScheme();
+				passAttempted = false;
 			resetRushClock();
 			window.retryState.prepPhase = false;
 			window.retryState.gameActive = true;
@@ -792,6 +798,8 @@
 	const JUMP_TRIGGER_RADIUS = 30;
 	const JUMP_REACH_BONUS = 8;
 	let defenseAssigned = false;
+	let defenseScheme = "";
+	let passAttempted = false;
 	const tackleHoldSeconds = 0.8; // was 1.0
 	const tackleContact = new Map();
 	const defenseStunUntil = new Map();
@@ -968,6 +976,7 @@
 		if (!ballCarrier || ballCarrier.team !== "offense") return;
 		if (!targetPlayer || targetPlayer.team !== "offense") return;
 		if (ballFlight?.active) return;
+		passAttempted = true;
 		const isBackward = targetPlayer.y > (ballCarrier.y + 2);
 		if (!isBackward && !canThrowFromPosition()) return;
 		if (!isBackward && targetPlayer.role === "QB" && targetPlayer.y < (getLineOfScrimmageY() - 2)) return;
@@ -1272,7 +1281,8 @@
 		const assignments = getCoverageAssignments();
 		const losY = getLineOfScrimmageY();
 		const qb = roster.find(player => player.role === "QB" && player.team === "offense");
-		const chaseTarget = ballFlight?.active ? ballFlight.target : (ballCarrier ?? qb);
+		const chaseTarget = ballCarrier ?? (ballFlight?.target ?? qb);
+		const qbRunning = ballCarrier && ballCarrier.role === "QB" && ballCarrier.y < (losY - 2);
 		const defensePlayers = roster.filter(player => player.team === "defense");
 		const deepestDefenders = defensePlayers.slice().sort((a, b) => a.y - b.y).slice(0, 2);
 		const deepestIds = new Set(deepestDefenders.map(def => def.id));
@@ -1285,7 +1295,7 @@
 			const stunnedUntil = defenseStunUntil.get(defender.id) ?? 0;
 			if (stunnedUntil > now) return;
 			let target = null;
-			if (ballFlight?.active && chaseTarget) {
+			if ((passAttempted || ballFlight?.active || qbRunning) && chaseTarget) {
 				target = chaseTarget;
 			} else {
 				if (scheme === "zone" || (scheme === "blitz" && deepestIds.has(defender.id))) {
