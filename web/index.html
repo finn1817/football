@@ -252,7 +252,6 @@
 		<div id="hudButtons">
 			<button id="snapBtn" tabindex="-1">SNAP BALL</button>
 			<button id="pauseBtn" tabindex="-1">PAUSE</button>
-			<button id="nextPlayBtn" tabindex="-1">NEXT PLAY</button>
 			<button id="settingsBtn" tabindex="-1">GAME SETTINGS</button>
 			<button id="resetBtn" tabindex="-1">REFRESH PAGE</button>
 		</div>
@@ -362,6 +361,39 @@
 		nextPlayBtn.classList.toggle("active", visible);
 	}
 
+	let autoNextTimeout = null;
+
+	function beginNextPlay() {
+		const spotY = window.downsState.ballSpotY ?? getLineOfScrimmageY();
+		const yardLine = Math.round(yToYardLine(spotY));
+		localStorage.setItem("retry-yard-line", String(yardLine));
+		yardLineInput.value = String(yardLine);
+		applyFormationToLine(yardLineToY(yardLine));
+		roster.forEach(player => player.reset());
+		if (typeof window.onRosterChanged === "function") {
+			window.onRosterChanged();
+		}
+		resetRushClock();
+		window.retryState.prepPhase = true;
+		window.retryState.gameActive = false;
+		window.retryState.isRouting = false;
+		window.downsState.playEnded = false;
+		setNextPlayVisible(false);
+		if (timerLabel) timerLabel.textContent = "PREP: 5";
+		if (typeof window.resetFrameTime === "function") {
+			window.resetFrameTime();
+		}
+	}
+
+	function scheduleNextPlay(delayMs = 1200) {
+		if (autoNextTimeout) return;
+		autoNextTimeout = setTimeout(() => {
+			autoNextTimeout = null;
+			if (window.downsState.gameOver) return;
+			beginNextPlay();
+		}, delayMs);
+	}
+
 	function setSubmitEnabled(enabled) {
 		if (submitScoreBtn) submitScoreBtn.disabled = !enabled;
 		if (scoreNameInput) scoreNameInput.disabled = !enabled;
@@ -406,30 +438,20 @@
 				window.resetFrameTime();
 			}
 		});
+
+		window.addEventListener("keydown", event => {
+			if (event.repeat) return;
+			if (event.code === "Space") {
+				event.preventDefault();
+				snapBtn.click();
+			}
+		});
 	}
 
 	if (nextPlayBtn) {
 		nextPlayBtn.addEventListener("click", () => {
 			if (window.downsState.gameOver) return;
-			const spotY = window.downsState.ballSpotY ?? getLineOfScrimmageY();
-			const yardLine = Math.round(yToYardLine(spotY));
-			localStorage.setItem("retry-yard-line", String(yardLine));
-			yardLineInput.value = String(yardLine);
-			applyFormationToLine(yardLineToY(yardLine));
-			roster.forEach(player => player.reset());
-			if (typeof window.onRosterChanged === "function") {
-				window.onRosterChanged();
-			}
-			resetRushClock();
-			window.retryState.prepPhase = true;
-			window.retryState.gameActive = false;
-			window.retryState.isRouting = false;
-			window.downsState.playEnded = false;
-			setNextPlayVisible(false);
-			if (timerLabel) timerLabel.textContent = "PREP: 5";
-			if (typeof window.resetFrameTime === "function") {
-				window.resetFrameTime();
-			}
+			beginNextPlay();
 		});
 	}
 
@@ -1052,7 +1074,7 @@
 			window.downsState.ballSpotY = yardLineToY(25);
 			window.downsState.lineToGainY = window.downsState.ballSpotY - (10 * pixelsPerYard);
 			window.updateDownsPanel();
-			setNextPlayVisible(true);
+			scheduleNextPlay(1500);
 		}
 	}
 
@@ -1321,7 +1343,7 @@
 				setNextPlayVisible(false);
 				setSubmitEnabled(true);
 			} else {
-				setNextPlayVisible(true);
+				scheduleNextPlay(1200);
 			}
 		}
 	}
