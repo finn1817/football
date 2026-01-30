@@ -893,9 +893,12 @@
 		const threshold = 20;
 		let closest = null;
 		let closestDist = Infinity;
+		const now = performance.now();
 		roster.forEach(def => {
 			if (def.team !== "defense") return;
 			if (def.role === "DL") return;
+			const stunnedUntil = defenseStunUntil.get(def.id) ?? 0;
+			if (stunnedUntil > now) return;
 			const dist = pointToSegmentDistance(def.x, def.y, start.x, start.y, end.x, end.y);
 			if (dist < threshold && dist < closestDist) {
 				closestDist = dist;
@@ -909,9 +912,12 @@
 		const threshold = 15; // make lower or higher for interception chance (higher for more likely)
 		let closest = null;
 		let closestDist = Infinity;
+		const now = performance.now();
 		roster.forEach(def => {
 			if (def.team !== "defense") return;
 			if (def.role === "DL") return;
+			const stunnedUntil = defenseStunUntil.get(def.id) ?? 0;
+			if (stunnedUntil > now) return;
 			const dist = Math.hypot(def.x - target.x, def.y - target.y);
 			if (dist <= threshold && dist < closestDist) {
 				closestDist = dist;
@@ -980,9 +986,12 @@
 		const reachableHeight = 35;
 		if (ballFlight.lob && arcOffset < reachableHeight) {
 			const shallowLob = ballFlight.arcHeight <= 60;
+			const now = performance.now();
 			for (const def of roster) {
 				if (def.team !== "defense") continue;
 				if (def.role === "DL" && progress > 0.2) continue;
+				const stunnedUntil = defenseStunUntil.get(def.id) ?? 0;
+				if (stunnedUntil > now) continue;
 				const distToShadow = Math.hypot(def.x - ballFlight.x, def.y - groundY);
 				const distToStart = Math.hypot(def.x - ballFlight.startX, def.y - ballFlight.startY);
 				const distToTarget = Math.hypot(def.x - ballFlight.target.x, def.y - ballFlight.target.y);
