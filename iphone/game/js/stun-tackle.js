@@ -1,21 +1,8 @@
 import { handleTackleResult } from "./next-play.js";
 
 const COLLISION_DISTANCE = 30;
-const TACKLE_DISTANCE = 24;
-const DEFENDER_STUN_MS = 900;
-const FORCE_BY_ROLE = {
-	QB: 0.95,
-	RB: 1.25,
-	FB: 1.35,
-	WR: 0.9,
-	TE: 1.15,
-	OL: 1.4,
-	DL: 1.35,
-	LB: 1.1,
-	MLB: 1.2,
-	CB: 0.95,
-	S: 1.0
-};
+const TACKLE_DISTANCE = 22;
+const DEFENDER_STUN_MS = 1000;
 
 function getTackleHoldMultiplier(role) {
 	switch (role) {
@@ -41,43 +28,6 @@ function stunDefender(game, player) {
 	game.defenseStunUntil.set(player.id, now + DEFENDER_STUN_MS);
 }
 
-function getRoleForce(player) {
-	return FORCE_BY_ROLE[player.role] ?? 1;
-}
-
-function getTeammatePushMultiplier(game, player, pushDirX, pushDirY) {
-	let supportCount = 0;
-	const maxBackDepth = 34;
-	const maxLateral = 18;
-	for (const teammate of game.roster) {
-		if (teammate === player) continue;
-		if (teammate.team !== player.team) continue;
-		const dx = teammate.x - player.x;
-		const dy = teammate.y - player.y;
-		const backDepth = -(dx * pushDirX + dy * pushDirY);
-		const lateral = Math.abs(dx * -pushDirY + dy * pushDirX);
-		if (backDepth >= 4 && backDepth <= maxBackDepth && lateral <= maxLateral) {
-			supportCount += 1;
-		}
-	}
-	return 1 + Math.min(0.75, supportCount * 0.25);
-}
-
-function getPushForce(game, player, pushDirX, pushDirY, stunned, rushActive) {
-	let force = getRoleForce(player);
-	if (player.team === "defense" && rushActive && (game.isRusher?.(player) ?? false)) {
-		force *= 1.12;
-	}
-	if (player === game.ballCarrier && player.team === "offense") {
-		force *= 1.08;
-	}
-	if (stunned) {
-		force *= 0.45;
-	}
-	force *= getTeammatePushMultiplier(game, player, pushDirX, pushDirY);
-	return force;
-}
-
 export function resolveCollisions(game) {
 	const rushActive = game.isRushActive?.() ?? false;
 	const currentCollisions = new Set();
@@ -101,37 +51,47 @@ export function resolveCollisions(game) {
 				stunDefender(game, playerB);
 			}
 			if (playerA.team === playerB.team) {
-				// Same team: ball carrier pushes teammates aside completely
+				// Same team: ball carrier can be pushed forward by teammates
 				if (game.ballCarrier && playerA === game.ballCarrier) {
-					playerB.x += nx * overlap * 3;
-					playerB.y += ny * overlap * 3;
+					playerB.x += nx * overlap * 2;
+					playerB.y += ny * overlap * 2;
 				} else if (game.ballCarrier && playerB === game.ballCarrier) {
-					playerA.x -= nx * overlap * 3;
-					playerA.y -= ny * overlap * 3;
+					playerA.x -= nx * overlap * 2;
+					playerA.y -= ny * overlap * 2;
 				} else {
-					// Non-ball carriers move smoothly past each other
-					playerA.x -= nx * overlap * 0.5;
-					playerA.y -= ny * overlap * 0.5;
-					playerB.x += nx * overlap * 0.5;
-					playerB.y += ny * overlap * 0.5;
+					playerA.x -= nx * overlap;
+					playerA.y -= ny * overlap;
+					playerB.x += nx * overlap;
+					playerB.y += ny * overlap;
 				}
 			} else {
-				// Opposing teams: force contest with teammate-assisted push
-				const aStunned = playerA.team === "defense" && (game.defenseStunUntil.get(playerA.id) ?? 0) > performance.now();
-				const bStunned = playerB.team === "defense" && (game.defenseStunUntil.get(playerB.id) ?? 0) > performance.now();
-
-				const aForce = getPushForce(game, playerA, nx, ny, aStunned, rushActive);
-				const bForce = getPushForce(game, playerB, -nx, -ny, bStunned, rushActive);
-				const forceTotal = Math.max(0.001, aForce + bForce);
-				const aShare = aForce / forceTotal;
-				const bShare = bForce / forceTotal;
-
-				// Keep contact while allowing stronger side to win the scrum
-				const contestSeparation = overlap * 0.9;
-				playerA.x -= nx * contestSeparation * bShare;
-				playerA.y -= ny * contestSeparation * bShare;
-				playerB.x += nx * contestSeparation * aShare;
-				playerB.y += ny * contestSeparation * aShare;
+				if (involvesBallCarrier) {
+					continue;
+				}
+				if (playerA.team === "defense") {
+					const slip = rushActive && (game.isRusher?.(playerA) ?? false) ? (1 - game.rushPushThrough) : 1;
+					const stackBoost = game.getStackBoost?.(playerA, nx, ny) ?? 1;
+					playerA.x -= nx * overlap * 2 * slip * stackBoost;
+					playerA.y -= ny * overlap * 2 * slip * stackBoost;
+				} else if (playerB.team === "defense") {
+					const slip = rushActive && (game.isRusher?.(playerB) ?? false) ? (1 - game.rushPushThrough) : 1;
+					const stackBoost = game.getStackBoost?.(playerB, nx, ny) ?? 1;
+					playerB.x += nx * overlap * 2 * slip * stackBoost;
+					playerB.y += ny * overlap * 2 * slip * stackBoost;
+				}
+				if (playerA.team === "offense") {
+					const stackBoost = game.getStackBoost?.(playerA, nx, ny) ?? 1;
+					if (stackBoost > 1) {
+						playerA.x -= nx * overlap * (stackBoost - 1);
+						playerA.y -= ny * overlap * (stackBoost - 1);
+					}
+				} else if (playerB.team === "offense") {
+					const stackBoost = game.getStackBoost?.(playerB, nx, ny) ?? 1;
+					if (stackBoost > 1) {
+						playerB.x += nx * overlap * (stackBoost - 1);
+						playerB.y += ny * overlap * (stackBoost - 1);
+					}
+				}
 			}
 		}
 	}
@@ -143,7 +103,8 @@ export function checkTackle(game) {
 	if (!game.ballCarrier || game.ballCarrier.team !== "offense") return;
 	const now = performance.now();
 	const roleMultiplier = getTackleHoldMultiplier(game.ballCarrier.role);
-	const adjustedTackleTime = game.tackleHoldSeconds * roleMultiplier;
+	const baseHold = game.difficultyConfig?.tackleHold ?? game.tackleHoldSeconds;
+	const adjustedTackleTime = baseHold * roleMultiplier;
 	const activeIds = new Set();
 	const tackled = game.roster.some(defender => {
 		if (defender.team !== "defense") return false;
