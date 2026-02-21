@@ -67,7 +67,16 @@ export function resetForNextPlay(game) {
 export function handleTackleResult(game) {
 	game.state.gameActive = false;
 	game.state.playEnded = true;
-	game.downsState.ballSpotY = game.ballCarrier.y;
+	const losY = game.lineOfScrimmageY;
+	const sackLossY = losY + (5 * game.pixelsPerYard);
+	let resultLabel = "TACKLED";
+	let ballSpotY = game.ballCarrier.y;
+	const isSack = game.ballCarrier && game.ballCarrier.role === "QB" && game.ballCarrier.y > (losY + 2) && !game.passAttempted;
+	if (isSack) {
+		ballSpotY = Math.max(ballSpotY, sackLossY);
+		resultLabel = "SACK!";
+	}
+	game.downsState.ballSpotY = ballSpotY;
 	
 	// Check for safety (tackled in own endzone)
 	if (game.ballCarrier && game.ballCarrier.y > game.field.bottomY) {
@@ -92,7 +101,7 @@ export function handleTackleResult(game) {
 			game.downsState.down += 1;
 		}
 	}
-	game.setTimerText(game.downsState.gameOver ? "GAME OVER" : "TACKLED");
+	game.setTimerText(game.downsState.gameOver ? "GAME OVER" : resultLabel);
 	game.updateDownsPanel();
 	if (game.downsState.gameOver) {
 		game.setNextPlayVisible(false);

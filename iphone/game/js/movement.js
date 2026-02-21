@@ -60,32 +60,69 @@ function getDefenseScheme(game) {
 
 export function moveOffense(game, deltaSeconds) {
 	if (!game.state.gameActive || game.state.isRouting || game.state.isPaused) return;
+	const qb = game.roster.find(player => player.role === "QB" && player.team === "offense");
+	const pocketActive = qb && game.ballCarrier === qb && !game.passAttempted && !game.ballFlight?.active;
+	let pocketTargets = null;
+	if (pocketActive) {
+		const olPlayers = game.roster.filter(player => player.team === "offense" && player.role === "OL" && (!player.path || player.path.length < 2));
+		if (olPlayers.length) {
+			const sorted = olPlayers.slice().sort((a, b) => a.startX - b.startX);
+			const mid = (sorted.length - 1) / 2;
+			const pocketSpread = 10;
+			const pocketY = Math.max(qb.y - 35, game.lineOfScrimmageY + 18);
+			pocketTargets = new Map();
+			sorted.forEach((player, index) => {
+				const targetX = Math.max(35, Math.min(game.field.width - 35, player.startX + (index - mid) * pocketSpread));
+				const targetY = Math.max(player.startY, pocketY);
+				pocketTargets.set(player.id, { x: targetX, y: targetY });
+			});
+		}
+	}
 	game.roster.forEach(player => {
 		if (player.team !== "offense") return;
-		if (!player.path || player.path.length < 2) return;
-		if (player.pathIndex >= player.path.length) return;
-		let target = player.path[player.pathIndex];
-		let dx = target.x - player.x;
-		let dy = target.y - player.y;
-		let dist = Math.hypot(dx, dy);
-		if (dist === 0) {
-			player.pathIndex = Math.min(player.pathIndex + 1, player.path.length - 1);
-			target = player.path[player.pathIndex];
-			dx = target.x - player.x;
-			dy = target.y - player.y;
-			dist = Math.hypot(dx, dy);
-			if (dist === 0) return;
+		if (player.path && player.path.length >= 2) {
+			if (player.pathIndex >= player.path.length) return;
+			let target = player.path[player.pathIndex];
+			let dx = target.x - player.x;
+			let dy = target.y - player.y;
+			let dist = Math.hypot(dx, dy);
+			if (dist === 0) {
+				player.pathIndex = Math.min(player.pathIndex + 1, player.path.length - 1);
+				target = player.path[player.pathIndex];
+				dx = target.x - player.x;
+				dy = target.y - player.y;
+				dist = Math.hypot(dx, dy);
+				if (dist === 0) return;
+			}
+			const speedPx = player.speedYps * game.pixelsPerYard;
+			const speedMultiplier = player.hasBall ? 0.85 : 1;
+			const step = speedPx * speedMultiplier * deltaSeconds;
+			if (dist <= step) {
+				player.x = target.x;
+				player.y = target.y;
+				player.pathIndex = Math.min(player.pathIndex + 1, player.path.length - 1);
+			} else {
+				player.x += (dx / dist) * step;
+				player.y += (dy / dist) * step;
+			}
+			return;
 		}
-		const speedPx = player.speedYps * game.pixelsPerYard;
-		const speedMultiplier = player.hasBall ? 0.85 : 1;
-		const step = speedPx * speedMultiplier * deltaSeconds;
-		if (dist <= step) {
-			player.x = target.x;
-			player.y = target.y;
-			player.pathIndex = Math.min(player.pathIndex + 1, player.path.length - 1);
-		} else {
-			player.x += (dx / dist) * step;
-			player.y += (dy / dist) * step;
+
+		if (player.role === "OL" && pocketTargets?.has(player.id)) {
+			const target = pocketTargets.get(player.id);
+			const dx = target.x - player.x;
+			const dy = target.y - player.y;
+			const dist = Math.hypot(dx, dy);
+			if (dist === 0) return;
+			const speedPx = player.speedYps * game.pixelsPerYard * 0.7;
+			const step = speedPx * deltaSeconds;
+			if (dist <= step) {
+				player.x = target.x;
+				player.y = target.y;
+			} else {
+				player.x += (dx / dist) * step;
+				player.y += (dy / dist) * step;
+			}
 		}
 	});
 }

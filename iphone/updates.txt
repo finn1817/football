@@ -1,0 +1,11 @@
+What feels “un‑football” right now:
+- No true pass blocking / pocket shape. DLs engage OL but the pocket doesn’t form and collapse with any structure—so it feels like a scrum instead of a pass rush.
+- No sacks or QB pressure rules. The QB is treated like a normal ball carrier; there’s no “in the pocket” pressure, throw‑away, or sack logic.
+- No incomplete pass outcomes. The ball always ends in a catch or interception. Real football has drops, overthrows, and throwaways.
+- No play clock / delay penalties. It’s always “draw routes and go,” which removes urgency and real decision timing.
+- No coverage depth logic. CB/LB/S chase but there’s no concept of zones, leverage, or trail technique by route type.
+- No ball spotting for out‑of‑bounds. Runs/receivers stepping out should end the play and spot the ball there.
+- No run blocking assignments. RB lanes are not created by OL movement or by a called run direction.
+- No pre‑snap alignment rules. Offense/defense align perfectly regardless of formation; in real football, defensive shells and alignments vary.
+- No situational AI (goal line / 4th down). Defense should tighten in red zone, play sticks on 3rd/4th, etc.
+- No scoring logic for safeties/turnovers in space beyond basic tackle/TD/intercept.
