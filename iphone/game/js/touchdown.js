@@ -3,7 +3,7 @@ import { yardLineToY } from "./characters.js";
 export function checkTouchdown(game) {
 	if (!game.state.gameActive || game.state.isPaused) return;
 	if (!game.ballCarrier || game.ballCarrier.team !== "offense") return;
-	if (game.ballCarrier.y > game.field.topY) return;
+	if (game.ballCarrier.y >= game.field.topY) return;
 
 	game.state.gameActive = false;
 	game.state.playEnded = true;

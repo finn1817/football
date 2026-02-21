@@ -45,7 +45,7 @@ export function resolveCollisions(game) {
 			const overlap = (COLLISION_DISTANCE - dist) / 2;
 			const nx = dx / dist;
 			const ny = dy / dist;
-			if (!involvesBallCarrier && !wasColliding) {
+			if (!involvesBallCarrier && !wasColliding && playerA.team !== playerB.team) {
 				stunDefender(game, playerA);
 				stunDefender(game, playerB);
 			}
@@ -66,16 +66,41 @@ export function resolveCollisions(game) {
 				if (involvesBallCarrier) {
 					continue;
 				}
+				const aStunned = playerA.team === "defense" && (game.defenseStunUntil.get(playerA.id) ?? 0) > performance.now();
+				const bStunned = playerB.team === "defense" && (game.defenseStunUntil.get(playerB.id) ?? 0) > performance.now();
+				
 				if (playerA.team === "defense") {
-					const slip = rushActive && (game.isRusher?.(playerA) ?? false) ? (1 - game.rushPushThrough) : 1;
-					const stackBoost = game.getStackBoost?.(playerA, nx, ny) ?? 1;
-					playerA.x -= nx * overlap * 2 * slip * stackBoost;
-					playerA.y -= ny * overlap * 2 * slip * stackBoost;
+					if (aStunned) {
+						playerA.x -= nx * overlap * 4;
+						playerA.y -= ny * overlap * 4;
+					} else if (rushActive && (game.isRusher?.(playerA) ?? false)) {
+						const pushPower = game.rushPushThrough;
+						playerA.x += nx * overlap * pushPower * 0.5;
+						playerA.y += ny * overlap * pushPower * 0.5;
+						playerB.x += nx * overlap * (2 - pushPower);
+						playerB.y += ny * overlap * (2 - pushPower);
+					} else {
+						playerA.x -= nx * overlap;
+						playerA.y -= ny * overlap;
+						playerB.x += nx * overlap;
+						playerB.y += ny * overlap;
+					}
 				} else if (playerB.team === "defense") {
-					const slip = rushActive && (game.isRusher?.(playerB) ?? false) ? (1 - game.rushPushThrough) : 1;
-					const stackBoost = game.getStackBoost?.(playerB, nx, ny) ?? 1;
-					playerB.x += nx * overlap * 2 * slip * stackBoost;
-					playerB.y += ny * overlap * 2 * slip * stackBoost;
+					if (bStunned) {
+						playerB.x += nx * overlap * 4;
+						playerB.y += ny * overlap * 4;
+					} else if (rushActive && (game.isRusher?.(playerB) ?? false)) {
+						const pushPower = game.rushPushThrough;
+						playerB.x -= nx * overlap * pushPower * 0.5;
+						playerB.y -= ny * overlap * pushPower * 0.5;
+						playerA.x -= nx * overlap * (2 - pushPower);
+						playerA.y -= ny * overlap * (2 - pushPower);
+					} else {
+						playerA.x -= nx * overlap;
+						playerA.y -= ny * overlap;
+						playerB.x += nx * overlap;
+						playerB.y += ny * overlap;
+					}
 				}
 				if (playerA.team === "offense") {
 					const stackBoost = game.getStackBoost?.(playerA, nx, ny) ?? 1;
