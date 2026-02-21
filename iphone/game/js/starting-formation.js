@@ -94,14 +94,14 @@ export function getFormationConfig(formationName, field) {
 		[FORMATIONS.EMPTY]: {
 			...baseConfig,
 			QB: { x: centerX, yOffset: 110 },              // QB in shotgun
+			RB: { x: centerX + lineSpacing * 0.9, yOffset: 20 }, // RB split out (empty look)
 			WR: [
-				{ x: centerX - lineSpacing * 2 - wrInset, yOffset: 20 },          // Left WR
-				{ x: centerX - lineSpacing * 2 - wrInset + 60, yOffset: 20 },    // Left Slot
-				{ x: centerX + lineSpacing * 2 + wrInset - 60, yOffset: 20 },    // Right Slot
-				{ x: centerX + lineSpacing * 2 + wrInset, yOffset: 20 }          // Right WR
+				{ x: centerX - lineSpacing * 2 - wrInset, yOffset: 20 },
+				{ x: centerX + lineSpacing * 2 + wrInset, yOffset: 20 }
 			],
 			TE: [
-				{ x: centerX - lineSpacing * 2 - teInset, yOffset: 20 }           // Left TE
+				{ x: centerX - lineSpacing * 0.9, yOffset: 20 },
+				{ x: centerX + lineSpacing * 0.1, yOffset: 20 }
 			]
 		}
 	};
