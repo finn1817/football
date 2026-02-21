@@ -128,7 +128,7 @@ export function advanceBallFlight(game) {
 		const shallowLob = game.ballFlight.arcHeight <= 60;
 		const now = performance.now();
 		const cfg = game.difficultyConfig ?? { interceptionRadius: 20 };
-		const tightCoverageRadius = Math.min(18, cfg.interceptionRadius * 0.6);
+		const tightCoverageRadius = Math.min(22, cfg.interceptionRadius * 0.75);
 		
 		for (const def of game.roster) {
 			if (def.team !== "defense") continue;
@@ -143,10 +143,10 @@ export function advanceBallFlight(game) {
 			const distToShadow = Math.hypot(def.x - game.ballFlight.x, def.y - groundY);
 			const distToStart = Math.hypot(def.x - game.ballFlight.startX, def.y - game.ballFlight.startY);
 			const inEarlyWindow = progress < 0.12 && distToStart < 24;
-			const inLateWindow = progress > 0.65 && isTightCoverage;
+			const inLateWindow = progress > 0.6 && isTightCoverage;
 			
 			// Intercept if defender is tight on receiver during late flight, or other conditions
-			if (distToShadow < 20 && (shallowLob || inEarlyWindow || inLateWindow)) {
+			if (distToShadow < 22 && (shallowLob || inEarlyWindow || inLateWindow)) {
 				game.ballFlight.interceptTarget = def;
 				progress = 1;
 				game.ballFlight.progress = 1;
