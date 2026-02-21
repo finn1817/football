@@ -20,6 +20,9 @@ export class Player {
 		this.speedYps = 6.7;
 		this.hasBall = (role === "QB");
 		this.isDead = false;
+		this.isJumping = false;
+		this.jumpStart = 0;
+		this.jumpCooldownUntil = 0;
 	}
 
 	reset() {
@@ -29,6 +32,9 @@ export class Player {
 		this.pathIndex = 0;
 		this.isDead = false;
 		this.hasBall = (this.role === "QB");
+		this.isJumping = false;
+		this.jumpStart = 0;
+		this.jumpCooldownUntil = 0;
 	}
 }
 
@@ -141,8 +147,9 @@ export function applyFormationToLine(roster, lineY) {
 	});
 }
 
-export function applySpeeds(roster, speedMultiplier = 1.1) {
+export function applySpeeds(roster, defenseMultiplier = 1.1) {
 	roster.forEach(player => {
-		player.speedYps = (SPEED_YPS[player.role] ?? 6.0) * speedMultiplier;
+		const baseMult = player.team === "defense" ? defenseMultiplier : 1.1;
+		player.speedYps = (SPEED_YPS[player.role] ?? 6.0) * baseMult;
 	});
 }

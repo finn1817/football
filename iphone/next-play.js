@@ -1,7 +1,10 @@
 import { applyFormationToLine, getLineOfScrimmageY, yardLineToY, yToYardLine } from "./characters.js";
+import { setDefenseScheme } from "./movement.js";
 
 export function startPlay(game) {
 	if (game.state.gameActive || game.state.isPaused || game.state.playEnded) return;
+	setDefenseScheme(game);
+	game.passAttempted = false;
 	game.state.prepPhase = false;
 	game.state.gameActive = true;
 	game.setTimerText("GO!");
@@ -17,6 +20,9 @@ export function startPlay(game) {
 
 export function resetForNextPlay(game) {
 	if (game.downsState.gameOver) return;
+	game.defenseScheme = "";
+	game.passAttempted = false;
+	game.defenseAssigned = false;
 	const spotY = game.downsState.ballSpotY ?? getLineOfScrimmageY(game.field);
 	const yardLine = Math.round(yToYardLine(game.field, spotY));
 	localStorage.setItem("iphone-yard-line", String(yardLine));
@@ -79,6 +85,17 @@ export function handleInterception(game, interceptor) {
 	game.ballCarrier = interceptor;
 	game.state.gameActive = false;
 	game.state.playEnded = true;
-	game.setTimerText("INTERCEPTED");
-	game.setNextPlayVisible(true);
+	game.downsState.gameOver = true;
+	game.setTimerText("INTERCEPTED - GAME OVER");
+	game.setNextPlayVisible(false);
+	game.stats.score = 0;
+	game.stats.touchdowns = 0;
+	game.downsState.down = 1;
+	localStorage.setItem("iphone-yard-line", "25");
+	game.downsState.ballSpotY = yardLineToY(game.field, 25);
+	game.downsState.lineToGainY = game.downsState.ballSpotY - (10 * game.pixelsPerYard);
+	game.updateDownsPanel();
+	if (typeof game.onGameOver === "function") {
+		game.onGameOver();
+	}
 }

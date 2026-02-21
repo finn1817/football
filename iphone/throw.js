@@ -36,12 +36,16 @@ function pointToSegmentDistance(px, py, x1, y1, x2, y2) {
 }
 
 function getInterceptorOnLine(game, start, end) {
-	const threshold = 20;
+	const cfg = game.difficultyConfig ?? { interceptionRadius: 20 };
+	const threshold = cfg.interceptionRadius;
 	let closest = null;
 	let closestDist = Infinity;
+	const now = performance.now();
 	game.roster.forEach(def => {
 		if (def.team !== "defense") return;
 		if (def.role === "DL") return;
+		const stunnedUntil = game.defenseStunUntil.get(def.id) ?? 0;
+		if (stunnedUntil > now) return;
 		const dist = pointToSegmentDistance(def.x, def.y, start.x, start.y, end.x, end.y);
 		if (dist < threshold && dist < closestDist) {
 			closestDist = dist;
@@ -63,6 +67,7 @@ export function attemptThrow(game, targetPlayer, isLob) {
 	const start = { x: game.ballCarrier.x, y: game.ballCarrier.y };
 	const end = { x: targetPlayer.x, y: targetPlayer.y };
 	game.ballCarrier.hasBall = false;
+	game.passAttempted = true;
 	const interceptor = !isLob ? getInterceptorOnLine(game, start, end) : null;
 
 	game.ballFlight = {
@@ -82,19 +87,86 @@ export function attemptThrow(game, targetPlayer, isLob) {
 	game.ballCarrier = null;
 }
 
+function canAutoJump(player) {
+	if (!player || player.team !== "offense") return false;
+	return player.role === "WR" || player.role === "TE" || player.role === "RB" || player.role === "QB";
+}
+
+function triggerJump(player) {
+	if (!canAutoJump(player)) return;
+	const now = performance.now();
+	if (now < (player.jumpCooldownUntil ?? 0)) return;
+	player.isJumping = true;
+	player.jumpStart = now;
+	player.jumpCooldownUntil = now + 900;
+}
+
+function resolveContestedCatch(interceptor, receiver, groundX, groundY) {
+	if (!interceptor || !receiver) return interceptor ?? receiver;
+	let defDist = Math.hypot(interceptor.x - groundX, interceptor.y - groundY);
+	let offDist = Math.hypot(receiver.x - groundX, receiver.y - groundY);
+	if (receiver.isJumping) {
+		offDist = Math.max(0, offDist - 8);
+	}
+	return offDist <= defDist ? receiver : interceptor;
+}
+
 export function advanceBallFlight(game) {
 	if (!game.ballFlight?.active) return;
-	const progress = Math.min(1, game.ballFlight.progress + game.ballFlight.speed);
+	let progress = Math.min(1, game.ballFlight.progress + game.ballFlight.speed);
 	game.ballFlight.progress = progress;
-	const activeTarget = game.ballFlight.interceptTarget ?? game.ballFlight.target;
+	const activeTarget = game.ballFlight.lob ? game.ballFlight.target : (game.ballFlight.interceptTarget ?? game.ballFlight.target);
 	const endX = activeTarget.x;
 	const endY = activeTarget.y;
 	const arcOffset = game.ballFlight.lob ? Math.sin(Math.PI * progress) * game.ballFlight.arcHeight : 0;
 	game.ballFlight.x = lerp(game.ballFlight.startX, endX, progress);
 	game.ballFlight.y = lerp(game.ballFlight.startY, endY, progress) - arcOffset;
+	const groundY = lerp(game.ballFlight.startY, endY, progress);
+
+	const reachableHeight = 35;
+	if (game.ballFlight.lob && arcOffset < reachableHeight) {
+		const shallowLob = game.ballFlight.arcHeight <= 60;
+		const now = performance.now();
+		for (const def of game.roster) {
+			if (def.team !== "defense") continue;
+			if (def.role === "DL" && progress > 0.2) continue;
+			const stunnedUntil = game.defenseStunUntil.get(def.id) ?? 0;
+			if (stunnedUntil > now) continue;
+			const distToShadow = Math.hypot(def.x - game.ballFlight.x, def.y - groundY);
+			const distToStart = Math.hypot(def.x - game.ballFlight.startX, def.y - game.ballFlight.startY);
+			const distToTarget = Math.hypot(def.x - game.ballFlight.target.x, def.y - game.ballFlight.target.y);
+			const inEarlyWindow = progress < 0.12 && distToStart < 24;
+			const inLateWindow = progress > 0.75 && distToTarget < 30;
+			if (distToShadow < 20 && (shallowLob || inEarlyWindow || inLateWindow)) {
+				game.ballFlight.interceptTarget = def;
+				progress = 1;
+				game.ballFlight.progress = 1;
+				break;
+			}
+		}
+	}
+
+	if (game.ballFlight.lob && progress > 0.7 && arcOffset < reachableHeight + 10) {
+		for (const player of game.roster) {
+			if (!canAutoJump(player)) continue;
+			const dist = Math.hypot(player.x - game.ballFlight.x, player.y - groundY);
+			if (dist <= 30) {
+				triggerJump(player);
+			}
+		}
+	}
+
 	if (progress >= 1) {
 		if (game.ballFlight.interceptTarget) {
-			handleInterception(game, game.ballFlight.interceptTarget);
+			const contestWinner = (game.ballFlight.lob && game.ballFlight.target?.team === "offense")
+				? resolveContestedCatch(game.ballFlight.interceptTarget, game.ballFlight.target, game.ballFlight.x, groundY)
+				: game.ballFlight.interceptTarget;
+			if (contestWinner.team === "defense") {
+				handleInterception(game, contestWinner);
+			} else {
+				contestWinner.hasBall = true;
+				game.ballCarrier = contestWinner;
+			}
 		} else {
 			game.ballFlight.target.hasBall = true;
 			game.ballCarrier = game.ballFlight.target;

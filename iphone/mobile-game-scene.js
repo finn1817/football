@@ -28,6 +28,17 @@ const backBtn = document.getElementById("backBtn");
 const mobileLeaderboardList = document.getElementById("mobileLeaderboardList");
 const mobileScoreNameInput = document.getElementById("mobileScoreNameInput");
 const mobileSubmitScoreBtn = document.getElementById("mobileSubmitScoreBtn");
+const pauseModal = document.getElementById("pauseModal");
+const pauseOverlay = document.getElementById("pauseOverlay");
+const resumeBtn = document.getElementById("resumeBtn");
+const pauseBackBtn = document.getElementById("pauseBackBtn");
+
+const DIFFICULTY_CONFIG = {
+	1: { name: "Easy", defSpeedMult: 0.9, rushDelayMin: 4, rushDelayMax: 8, rushPushThrough: 0.4, tackleHold: 1.2, interceptionRadius: 10 },
+	2: { name: "Medium", defSpeedMult: 1.15, rushDelayMin: 2, rushDelayMax: 5, rushPushThrough: 0.8, tackleHold: 0.8, interceptionRadius: 20 },
+	3: { name: "Hard", defSpeedMult: 1.35, rushDelayMin: 1, rushDelayMax: 2.5, rushPushThrough: 1.0, tackleHold: 0.4, interceptionRadius: 35 }
+};
+let currentDifficulty = Number(localStorage.getItem("iphone-difficulty") ?? "2");
 
 const game = {
 	field: {
@@ -68,23 +79,29 @@ const game = {
 	roster: [],
 	ballCarrier: null,
 	ballFlight: null,
+	defenseScheme: "",
+	passAttempted: false,
+	defenseAssigned: false,
 	pixelsPerYard: 1,
 	lineOfScrimmageY: 0,
 	prepRemaining: 6,
 	lastFrameTime: null,
 	playClockSeconds: 0,
 	rushDelaySeconds: 6,
-	rushDelayMin: 4,
-	rushDelayMax: 10,
-	rushSpeedMultiplier: 1.35,
-	rushPushThrough: 0.55,
+	rushDelayMin: 2,
+	rushDelayMax: 5,
+	rushSpeedMultiplier: 1.5,
+	rushPushThrough: 0.8,
 	previousCollisions: new Set(),
 	defenseStunUntil: new Map(),
 	tackleContact: new Map(),
-	tackleHoldSeconds: 1.0,
+	tackleHoldSeconds: 0.8,
 	resetRushClock() {
+		const cfg = DIFFICULTY_CONFIG[currentDifficulty];
 		this.playClockSeconds = 0;
-		this.rushDelaySeconds = this.rushDelayMin + Math.random() * (this.rushDelayMax - this.rushDelayMin);
+		this.rushDelaySeconds = cfg.rushDelayMin + Math.random() * (cfg.rushDelayMax - cfg.rushDelayMin);
+		this.rushPushThrough = cfg.rushPushThrough;
+		this.tackleHoldSeconds = cfg.tackleHold;
 	},
 	isRushActive() {
 		return this.state.gameActive && this.playClockSeconds >= this.rushDelaySeconds;
@@ -112,6 +129,21 @@ const game = {
 	},
 	setTimerText(text) {
 		if (timerLabel) timerLabel.textContent = text;
+	},
+	setPaused(paused) {
+		this.state.isPaused = paused;
+		if (pauseModal) pauseModal.classList.toggle("active", paused);
+		if (pauseOverlay) pauseOverlay.classList.toggle("active", paused);
+		if (paused) {
+			this.setTimerText("PAUSED");
+		} else {
+			if (this.state.prepPhase) {
+				this.setTimerText(`PREP: ${Math.ceil(this.prepRemaining)}`);
+			} else if (this.state.gameActive) {
+				this.setTimerText("GO!");
+			}
+		}
+		this.lastFrameTime = null;
 	},
 	setNextPlayVisible(visible) {
 		if (!nextPlayBtn) return;
@@ -213,7 +245,8 @@ function initializeGameState() {
 	setFormationOffsets(game.roster);
 	game.lineOfScrimmageY = getLineOfScrimmageY(game.field);
 	applyFormationToLine(game.roster, game.lineOfScrimmageY);
-	applySpeeds(game.roster);
+	const cfg = DIFFICULTY_CONFIG[currentDifficulty];
+	applySpeeds(game.roster, cfg.defSpeedMult);
 	game.ballCarrier = game.roster.find(player => player.role === "QB") ?? game.roster[0];
 	game.roster.forEach(player => {
 		player.hasBall = (player === game.ballCarrier);
@@ -223,6 +256,7 @@ function initializeGameState() {
 	game.downsState.lineToGainY = game.downsState.ballSpotY - (10 * game.pixelsPerYard);
 	game.updateDownsPanel();
 	game.prepRemaining = 6;
+	game.difficultyConfig = DIFFICULTY_CONFIG[currentDifficulty];
 	game.state.prepPhase = true;
 	game.state.gameActive = false;
 	game.state.playEnded = false;
@@ -232,6 +266,23 @@ function initializeGameState() {
 	game.resetRushClock();
 }
 
+function getJumpOffset(player) {
+	if (!player?.isJumping) return 0;
+	const now = performance.now();
+	const elapsed = now - (player.jumpStart ?? 0);
+	const JUMP_DURATION_MS = 350;
+	if (elapsed >= JUMP_DURATION_MS) {
+		player.isJumping = false;
+		return 0;
+	}
+	const t = elapsed / JUMP_DURATION_MS;
+	const JUMP_HEIGHT = 16;
+	return Math.sin(Math.PI * t) * JUMP_HEIGHT;
+}
+
+function lerp(a, b, t) {
+	return a + (b - a) * t;
+}
 
 function drawField() {
 	ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -278,7 +329,18 @@ function drawField() {
 }
 
 function drawPlayers() {
+	if (game.ballFlight?.active && game.ballFlight.lob) {
+		ctx.fillStyle = "rgba(0,0,0,0.3)";
+		const progress = game.ballFlight.progress;
+		const groundY = lerp(game.ballFlight.startY, game.ballFlight.target.y, progress);
+		ctx.beginPath();
+		ctx.arc(game.ballFlight.x, groundY, 10, 0, Math.PI * 2);
+		ctx.fill();
+	}
+
 	game.roster.forEach(player => {
+		const jumpOffset = getJumpOffset(player);
+		const drawY = player.y - jumpOffset;
 		ctx.fillStyle = "rgba(0,0,0,0.5)";
 		ctx.beginPath();
 		ctx.arc(player.x + 2, player.y + 2, 15, 0, Math.PI * 2);
@@ -296,20 +358,20 @@ function drawPlayers() {
 		}
 		ctx.fillStyle = fillColor;
 		ctx.beginPath();
-		ctx.arc(player.x, player.y, 15, 0, Math.PI * 2);
+		ctx.arc(player.x, drawY, 15, 0, Math.PI * 2);
 		ctx.fill();
 
 		if (player.hasBall) {
 			ctx.fillStyle = "brown";
 			ctx.beginPath();
-			ctx.arc(player.x, player.y, 8, 0, Math.PI * 2);
+			ctx.arc(player.x, drawY, 8, 0, Math.PI * 2);
 			ctx.fill();
 		}
 
 		ctx.fillStyle = "white";
 		ctx.font = "10px Arial";
 		ctx.textAlign = "center";
-		ctx.fillText(player.role, player.x, player.y + 4);
+		ctx.fillText(player.role, player.x, drawY + 4);
 	});
 
 	if (game.ballFlight?.active) {
@@ -355,9 +417,11 @@ const gesture = {
 	startX: 0,
 	startY: 0,
 	startTime: 0,
-	mode: "none"
+	mode: "none",
+	lastTapTime: 0
 };
 const DRAG_THRESHOLD = 12;
+const DOUBLE_TAP_MS = 300;
 
 function getClosestOffensePlayer(x, y, maxDist = 28) {
 	let closest = null;
@@ -374,7 +438,8 @@ function getClosestOffensePlayer(x, y, maxDist = 28) {
 }
 
 function handleInput(type, x, y) {
-	if (game.state.isPaused || game.state.playEnded) return;
+	if (game.state.isPaused) return;
+	if (game.state.playEnded) return;
 
 	if (type === "start") {
 		const target = getClosestOffensePlayer(x, y, 32);
@@ -385,6 +450,14 @@ function handleInput(type, x, y) {
 			gesture.startY = y;
 			gesture.startTime = Date.now();
 			gesture.mode = "pending";
+		} else {
+			const now = Date.now();
+			if (now - gesture.lastTapTime < DOUBLE_TAP_MS) {
+				game.setPaused(true);
+				gesture.lastTapTime = 0;
+			} else {
+				gesture.lastTapTime = now;
+			}
 		}
 		return;
 	}
@@ -477,8 +550,16 @@ backBtn?.addEventListener("click", () => {
 	window.location.href = "./index.html";
 });
 
+resumeBtn?.addEventListener("click", () => {
+	game.setPaused(false);
+});
+
+pauseBackBtn?.addEventListener("click", () => {
+	window.location.href = "./index.html";
+});
+
 function updateTimer(deltaSeconds) {
-	if (!game.state.prepPhase || game.state.gameActive || game.state.playEnded) return;
+	if (!game.state.prepPhase || game.state.gameActive || game.state.playEnded || game.state.isPaused || game.state.isRouting) return;
 	game.prepRemaining = Math.max(0, game.prepRemaining - deltaSeconds);
 	game.setTimerText(`PREP: ${Math.ceil(game.prepRemaining)}`);
 	if (game.prepRemaining <= 0) {
@@ -490,18 +571,20 @@ function render(timestamp) {
 	if (!game.lastFrameTime) game.lastFrameTime = timestamp;
 	const deltaSeconds = Math.min(0.05, (timestamp - game.lastFrameTime) / 1000);
 	game.lastFrameTime = timestamp;
-	if (game.state.gameActive && !game.state.isPaused) {
-		game.playClockSeconds += deltaSeconds;
-	}
 
-	updateTimer(deltaSeconds);
-	advanceBallFlight(game);
-	moveOffense(game, deltaSeconds);
-	moveDefense(game, deltaSeconds);
-	checkTouchdown(game);
-	checkTackle(game);
-	resolveCollisions(game);
-	game.lineOfScrimmageY = game.downsState.ballSpotY ?? game.lineOfScrimmageY;
+	if (!game.state.isPaused) {
+		if (game.state.gameActive) {
+			game.playClockSeconds += deltaSeconds;
+		}
+		updateTimer(deltaSeconds);
+		advanceBallFlight(game);
+		moveOffense(game, deltaSeconds);
+		moveDefense(game, deltaSeconds);
+		checkTouchdown(game);
+		checkTackle(game);
+		resolveCollisions(game);
+		game.lineOfScrimmageY = game.downsState.ballSpotY ?? game.lineOfScrimmageY;
+	}
 
 	drawField();
 	drawRoutes();
