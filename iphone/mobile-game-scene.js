@@ -127,8 +127,21 @@ const game = {
 		const ytg = this.downsState.lineToGainY === null
 			? 10
 			: Math.max(0, Math.round((lineY - this.downsState.lineToGainY) / this.pixelsPerYard));
-		downLabel.textContent = `Down: ${this.downsState.down}`;
-		ytgLabel.textContent = `YTG: ${ytg}`;
+		const yardsToGoal = Math.max(0, Math.round((lineY - this.field.topY) / this.pixelsPerYard));
+		const goalToGo = this.downsState.lineToGainY !== null && this.downsState.lineToGainY < this.field.topY;
+		
+		const getOrdinal = (down) => {
+			switch (down) {
+				case 1: return "1st";
+				case 2: return "2nd";
+				case 3: return "3rd";
+				default: return "4th";
+			}
+		};
+		
+		const downText = goalToGo ? `${getOrdinal(this.downsState.down)} & Goal` : getOrdinal(this.downsState.down);
+		downLabel.textContent = `Down: ${downText}`;
+		ytgLabel.textContent = goalToGo ? `YTG: ${Math.max(1, yardsToGoal)}` : `YTG: ${ytg}`;
 		ballLabel.textContent = `Ball: ${Math.round(yToYardLine(this.field, lineY))}`;
 		if (scoreLabel) scoreLabel.textContent = `Score: ${this.stats.score}`;
 		if (tinyScore) tinyScore.textContent = `Score ${this.stats.score}`;

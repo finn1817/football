@@ -4,6 +4,21 @@ const COLLISION_DISTANCE = 30;
 const TACKLE_DISTANCE = 22;
 const DEFENDER_STUN_MS = 900;
 
+function getTackleHoldMultiplier(role) {
+	switch (role) {
+		case "QB":
+			return 0.7;
+		case "RB":
+			return 1.2;
+		case "WR":
+			return 1.25;
+		case "TE":
+			return 1.15;
+		default:
+			return 1;
+	}
+}
+
 function stunDefender(game, player) {
 	if (!player || player.team !== "defense") return;
 	const now = performance.now();
@@ -85,6 +100,8 @@ export function checkTackle(game) {
 	if (!game.state.gameActive || game.state.isPaused) return;
 	if (!game.ballCarrier || game.ballCarrier.team !== "offense") return;
 	const now = performance.now();
+	const roleMultiplier = getTackleHoldMultiplier(game.ballCarrier.role);
+	const adjustedTackleTime = game.tackleHoldSeconds * roleMultiplier;
 	const activeIds = new Set();
 	const tackled = game.roster.some(defender => {
 		if (defender.team !== "defense") return false;
@@ -93,7 +110,7 @@ export function checkTackle(game) {
 			activeIds.add(defender.id);
 			const startedAt = game.tackleContact.get(defender.id) ?? now;
 			game.tackleContact.set(defender.id, startedAt);
-			return (now - startedAt) / 1000 >= game.tackleHoldSeconds;
+			return (now - startedAt) / 1000 >= adjustedTackleTime;
 		}
 		return false;
 	});
