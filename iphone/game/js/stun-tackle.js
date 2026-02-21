@@ -66,12 +66,6 @@ export function resolveCollisions(game) {
 				}
 			} else {
 				if (involvesBallCarrier) {
-					// Keep defenders close to the ball carrier so tackle contact can build
-					const separation = overlap * 0.6;
-					playerA.x -= nx * separation;
-					playerA.y -= ny * separation;
-					playerB.x += nx * separation;
-					playerB.y += ny * separation;
 					continue;
 				}
 				if (playerA.team === "defense") {
