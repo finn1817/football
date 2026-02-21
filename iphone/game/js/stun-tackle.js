@@ -1,7 +1,7 @@
 import { handleTackleResult } from "./next-play.js";
 
 const COLLISION_DISTANCE = 30;
-const TACKLE_DISTANCE = 26;
+const TACKLE_DISTANCE = 22;
 const DEFENDER_STUN_MS = 1000;
 
 function getTackleHoldMultiplier(role) {
@@ -103,16 +103,18 @@ export function checkTackle(game) {
 	if (!game.state.gameActive || game.state.isPaused) return;
 	if (!game.ballCarrier || game.ballCarrier.team !== "offense") return;
 	const now = performance.now();
+	const roleMultiplier = getTackleHoldMultiplier(game.ballCarrier.role);
+	const baseHold = game.difficultyConfig?.tackleHold ?? game.tackleHoldSeconds;
+	const roleHold = baseHold * roleMultiplier;
 	const activeIds = new Set();
-	const adjustedTackleTime = 1.0;
 	const tackled = game.roster.some(defender => {
 		if (defender.team !== "defense") return false;
 		const dist = Math.hypot(defender.x - game.ballCarrier.x, defender.y - game.ballCarrier.y);
-		if (dist <= COLLISION_DISTANCE) {
+		if (dist <= TACKLE_DISTANCE) {
 			activeIds.add(defender.id);
 			const startedAt = game.tackleContact.get(defender.id) ?? now;
 			game.tackleContact.set(defender.id, startedAt);
-			return (now - startedAt) / 1000 >= adjustedTackleTime;
+			return (now - startedAt) / 1000 >= roleHold;
 		}
 		return false;
 	});
