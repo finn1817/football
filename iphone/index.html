@@ -124,19 +124,31 @@
 			yardLineInput.value = "25";
 		}
 
-		settingsBtn.addEventListener("click", () => {
-			settingsPanel.classList.toggle("active");
-		});
+	const diffStored = localStorage.getItem("iphone-difficulty");
+	const diffSelect = document.getElementById("difficultySelect");
+	if (diffStored !== null) {
+		diffSelect.value = diffStored;
+	} else {
+		localStorage.setItem("iphone-difficulty", "2");
+		diffSelect.value = "2";
+	}
 
-		saveSettingsBtn.addEventListener("click", () => {
-			const parsed = Number(yardLineInput.value);
-			if (Number.isNaN(parsed)) return;
-			const clamped = Math.max(0, Math.min(100, parsed));
-			localStorage.setItem(key, String(clamped));
-			yardLineInput.value = String(clamped);
-		const diffSelect = document.getElementById("difficultySelect");
+	settingsBtn.addEventListener("click", () => {
+		settingsPanel.classList.toggle("active");
+	});
+
+	saveSettingsBtn.addEventListener("click", () => {
+		const parsed = Number(yardLineInput.value);
+		if (Number.isNaN(parsed)) return;
+		const clamped = Math.max(0, Math.min(100, parsed));
+		localStorage.setItem(key, String(clamped));
+		yardLineInput.value = String(clamped);
 		const difficulty = Number(diffSelect.value);
 		localStorage.setItem("iphone-difficulty", String(difficulty));
 		settingsPanel.classList.remove("active");
-</body>
-</html>
+	});
+
+	startBtn.addEventListener("click", () => {
+		window.location.href = "./game.html";
+	});
+</script>
