@@ -126,7 +126,7 @@ export function applyFormation(roster, formationName, field, lineOfScrimmageY) {
 		}
 	});
 	
-	// Group players by role
+	// group players - by role
 	const playersByRole = {};
 	roster.forEach(player => {
 		if (player.team !== "offense") return;
@@ -136,7 +136,7 @@ export function applyFormation(roster, formationName, field, lineOfScrimmageY) {
 		playersByRole[player.role].push(player);
 	});
 	
-	// Apply QB position
+	// apply QB position
 	if (formation.QB && playersByRole.QB && playersByRole.QB[0]) {
 		const qb = playersByRole.QB[0];
 		qb.x = formation.QB.x;
@@ -147,7 +147,7 @@ export function applyFormation(roster, formationName, field, lineOfScrimmageY) {
 		qb.baseYOffset = formation.QB.yOffset;
 	}
 	
-	// Apply RB position
+	// apply RB position
 	if (formation.RB && playersByRole.RB && playersByRole.RB[0]) {
 		const rb = playersByRole.RB[0];
 		rb.x = formation.RB.x;
@@ -159,11 +159,11 @@ export function applyFormation(roster, formationName, field, lineOfScrimmageY) {
 		rb.role = "RB"; // Ensure it stays RB
 	}
 	
-	// Apply FB position (I-Formation only - convert second RB or TE to FB)
+	// apply FB position (I-Formation only - convert second RB or TE to FB)
 	if (formation.FB) {
-		let fb = playersByRole.RB && playersByRole.RB[1]; // Try second RB first
+		let fb = playersByRole.RB && playersByRole.RB[1]; // try second RB first
 		if (!fb && playersByRole.TE && playersByRole.TE[1]) {
-			fb = playersByRole.TE[1]; // Convert TE2 to FB
+			fb = playersByRole.TE[1]; // convert the TE2 to a FB
 		}
 		if (fb) {
 			fb.x = formation.FB.x;
