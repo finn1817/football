@@ -188,8 +188,11 @@ function initializeGameState() {
 	console.log("Roster built:", game.roster.length, "players");
 	setFormationOffsets(game.roster);
 	game.lineOfScrimmageY = getLineOfScrimmageY(game.field);
-	
-	// Apply initial formation
+
+	// Align all players (offense + defense) to LOS first
+	applyFormationToLine(game.roster, game.lineOfScrimmageY);
+
+	// Then apply offense-only formation overlay
 	applyFormation(game.roster, game.currentFormation, game.field, game.lineOfScrimmageY);
 	
 	const cfg = DIFFICULTY_CONFIG[currentDifficulty];

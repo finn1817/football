@@ -84,11 +84,11 @@ export function resolveCollisions(game) {
 						playerA.x -= nx * overlap * 4;
 						playerA.y -= ny * overlap * 4;
 					} else if (bIsBallCarrier) {
-						// Ball carrier (QB/RB tush push) overpowers defender
-						playerA.x -= nx * overlap * 1.5;
-						playerA.y -= ny * overlap * 1.5;
-						playerB.x -= nx * overlap * 0.5;
-						playerB.y -= ny * overlap * 0.5;
+						// Ball carrier gets slight leverage without breaking tackle contact
+						playerA.x -= nx * overlap * 0.35;
+						playerA.y -= ny * overlap * 0.35;
+						playerB.x -= nx * overlap * 0.15;
+						playerB.y -= ny * overlap * 0.15;
 					} else if (aIsDLine || (rushActive && (game.isRusher?.(playerA) ?? false))) {
 						// D-Line gets moderate push when not blocked
 						const pushPower = aIsDLine ? Math.max(0.4, game.rushPushThrough * 0.7) : game.rushPushThrough;
@@ -109,11 +109,11 @@ export function resolveCollisions(game) {
 						playerB.x += nx * overlap * 4;
 						playerB.y += ny * overlap * 4;
 					} else if (aIsBallCarrier) {
-						// Ball carrier (QB/RB tush push) overpowers defender
-						playerB.x += nx * overlap * 1.5;
-						playerB.y += ny * overlap * 1.5;
-						playerA.x += nx * overlap * 0.5;
-						playerA.y += ny * overlap * 0.5;
+						// Ball carrier gets slight leverage without breaking tackle contact
+						playerB.x += nx * overlap * 0.35;
+						playerB.y += ny * overlap * 0.35;
+						playerA.x += nx * overlap * 0.15;
+						playerA.y += ny * overlap * 0.15;
 					} else if (bIsDLine || (rushActive && (game.isRusher?.(playerB) ?? false))) {
 						// D-Line gets moderate push when not blocked
 						const pushPower = bIsDLine ? Math.max(0.4, game.rushPushThrough * 0.7) : game.rushPushThrough;

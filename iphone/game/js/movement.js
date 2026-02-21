@@ -12,9 +12,10 @@ function getCoverageAssignments(game) {
 	const lbs = getDefenseByRole(game, "LB").sort((a, b) => a.x - b.x);
 	const tes = getOffenseByRole(game, "TE").sort((a, b) => a.x - b.x);
 	const rbs = getOffenseByRole(game, "RB").sort((a, b) => a.x - b.x);
+	const fbs = getOffenseByRole(game, "FB").sort((a, b) => a.x - b.x);
 	const wrs = getOffenseByRole(game, "WR").sort((a, b) => a.x - b.x);
 	const used = new Set();
-	const allReceivers = [...wrs, ...tes, ...rbs];
+	const allReceivers = [...wrs, ...tes, ...rbs, ...fbs];
 	const coverageDefs = [...cbs, ...lbs];
 	coverageDefs.forEach(def => {
 		if (!allReceivers.length) return;

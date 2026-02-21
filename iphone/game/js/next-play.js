@@ -28,13 +28,13 @@ export function resetForNextPlay(game) {
 	const yardLine = Math.round(yToYardLine(game.field, spotY));
 	localStorage.setItem("iphone-yard-line", String(yardLine));
 	const lineY = yardLineToY(game.field, yardLine);
-	
-	// Apply current formation
+
+	// First align all players (including defense) to LOS
+	applyFormationToLine(game.roster, lineY);
+
+	// Then apply offense formation overlay if configured
 	if (game.currentFormation) {
 		applyFormation(game.roster, game.currentFormation, game.field, lineY);
-	} else {
-		// Fallback to old system if no formation set
-		applyFormationToLine(game.roster, lineY);
 	}
 	
 	game.roster.forEach(player => player.reset());
