@@ -1,5 +1,3 @@
-import { assignDefenseTargets } from "./defense.js";
-
 function getOffenseByRole(game, role) {
 	return game.roster.filter(player => player.team === "offense" && player.role === role);
 }
