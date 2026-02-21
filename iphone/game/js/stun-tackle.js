@@ -66,6 +66,7 @@ export function resolveCollisions(game) {
 				}
 			} else {
 				if (involvesBallCarrier) {
+					// Allow defenders to overlap the ball carrier; no push apart here.
 					continue;
 				}
 				if (playerA.team === "defense") {
@@ -102,28 +103,18 @@ export function checkTackle(game) {
 	if (!game.state.gameActive || game.state.isPaused) return;
 	if (!game.ballCarrier || game.ballCarrier.team !== "offense") return;
 	const now = performance.now();
-	const roleMultiplier = getTackleHoldMultiplier(game.ballCarrier.role);
-	const baseHold = game.difficultyConfig?.tackleHold ?? game.tackleHoldSeconds;
 	const activeIds = new Set();
-	const closeDefenders = [];
-	game.roster.forEach(defender => {
-		if (defender.team !== "defense") return;
+	const adjustedTackleTime = 1.0;
+	const tackled = game.roster.some(defender => {
+		if (defender.team !== "defense") return false;
 		const dist = Math.hypot(defender.x - game.ballCarrier.x, defender.y - game.ballCarrier.y);
-		if (dist <= TACKLE_DISTANCE) {
-			closeDefenders.push(defender);
+		if (dist <= COLLISION_DISTANCE) {
+			activeIds.add(defender.id);
+			const startedAt = game.tackleContact.get(defender.id) ?? now;
+			game.tackleContact.set(defender.id, startedAt);
+			return (now - startedAt) / 1000 >= adjustedTackleTime;
 		}
-	});
-	const pileCount = closeDefenders.length;
-	let pileMultiplier = 1;
-	if (pileCount >= 3) pileMultiplier = 0.35;
-	else if (pileCount === 2) pileMultiplier = 0.5;
-	const adjustedTackleTime = baseHold * roleMultiplier * pileMultiplier;
-
-	const tackled = closeDefenders.some(defender => {
-		activeIds.add(defender.id);
-		const startedAt = game.tackleContact.get(defender.id) ?? now;
-		game.tackleContact.set(defender.id, startedAt);
-		return (now - startedAt) / 1000 >= adjustedTackleTime;
+		return false;
 	});
 	game.tackleContact.forEach((_, id) => {
 		if (!activeIds.has(id)) {
