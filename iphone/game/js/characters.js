@@ -41,6 +41,7 @@ export class Player {
 export const SPEED_YPS = {
 	QB: 5.8,
 	RB: 6.4,
+	FB: 6.0,
 	WR: 6.7,
 	SL: 6.6,
 	TE: 6.1,

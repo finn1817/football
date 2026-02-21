@@ -8,6 +8,7 @@ import { DIFFICULTY_CONFIG } from "./config.js";
 import { drawField, drawPlayers, drawRoutes, drawPrepCountdown } from "./renderer.js";
 import { initInputHandlers } from "./input-handler.js";
 import { initUIHandlers, setTimerText, setNextPlayVisible, setSubmitEnabled, updateDownsPanel, updateTimer, refreshLeaderboard, setPaused } from "./ui-manager.js";
+import { FORMATIONS, applyFormation, getFormationsList } from "./starting-formation.js";
 
 const canvas = document.getElementById("gameCanvas");
 if (!canvas) {
@@ -95,6 +96,7 @@ const game = {
 	tackleContact: new Map(),
 	tackleHoldSeconds: 0.8,
 	difficultyConfig: null,
+	currentFormation: FORMATIONS.STANDARD,
 	
 	resetRushClock() {
 		const cfg = DIFFICULTY_CONFIG[currentDifficulty];
@@ -186,7 +188,9 @@ function initializeGameState() {
 	console.log("Roster built:", game.roster.length, "players");
 	setFormationOffsets(game.roster);
 	game.lineOfScrimmageY = getLineOfScrimmageY(game.field);
-	applyFormationToLine(game.roster, game.lineOfScrimmageY);
+	
+	// Apply initial formation
+	applyFormation(game.roster, game.currentFormation, game.field, game.lineOfScrimmageY);
 	
 	const cfg = DIFFICULTY_CONFIG[currentDifficulty];
 	console.log("Difficulty config:", cfg);

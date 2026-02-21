@@ -9,6 +9,7 @@ function getTackleHoldMultiplier(role) {
 		case "QB":
 			return 0.7;
 		case "RB":
+		case "FB":
 			return 1.2;
 		case "WR":
 			return 1.25;
@@ -50,41 +51,53 @@ export function resolveCollisions(game) {
 				stunDefender(game, playerB);
 			}
 			if (playerA.team === playerB.team) {
+				// Same team: ball carrier pushes teammates aside completely
 				if (game.ballCarrier && playerA === game.ballCarrier) {
-					playerB.x += nx * overlap * 2;
-					playerB.y += ny * overlap * 2;
+					playerB.x += nx * overlap * 3;
+					playerB.y += ny * overlap * 3;
 				} else if (game.ballCarrier && playerB === game.ballCarrier) {
-					playerA.x -= nx * overlap * 2;
-					playerA.y -= ny * overlap * 2;
+					playerA.x -= nx * overlap * 3;
+					playerA.y -= ny * overlap * 3;
 				} else {
-					playerA.x -= nx * overlap;
-					playerA.y -= ny * overlap;
-					playerB.x += nx * overlap;
-					playerB.y += ny * overlap;
+					// Non-ball carriers move smoothly past each other
+					playerA.x -= nx * overlap * 0.5;
+					playerA.y -= ny * overlap * 0.5;
+					playerB.x += nx * overlap * 0.5;
+					playerB.y += ny * overlap * 0.5;
 				}
 			} else {
-				if (involvesBallCarrier) {
-					continue;
-				}
+				// Opposing teams: ball carrier can push through defenders
 				const aStunned = playerA.team === "defense" && (game.defenseStunUntil.get(playerA.id) ?? 0) > performance.now();
 				const bStunned = playerB.team === "defense" && (game.defenseStunUntil.get(playerB.id) ?? 0) > performance.now();
 				
-				// D-Line gets extra push power to penetrate O-line
+				// D-Line gets extra push power to penetrate O-line when not stunned
 				const aIsDLine = playerA.team === "defense" && playerA.role === "DL";
 				const bIsDLine = playerB.team === "defense" && playerB.role === "DL";
 				
+				// Ball carrier gets push advantage for tush push
+				const aIsBallCarrier = game.ballCarrier && playerA === game.ballCarrier;
+				const bIsBallCarrier = game.ballCarrier && playerB === game.ballCarrier;
+				
 				if (playerA.team === "defense") {
 					if (aStunned) {
+						// Stunned defender gets pushed back hard
 						playerA.x -= nx * overlap * 4;
 						playerA.y -= ny * overlap * 4;
+					} else if (bIsBallCarrier) {
+						// Ball carrier (QB/RB tush push) overpowers defender
+						playerA.x -= nx * overlap * 1.5;
+						playerA.y -= ny * overlap * 1.5;
+						playerB.x -= nx * overlap * 0.5;
+						playerB.y -= ny * overlap * 0.5;
 					} else if (aIsDLine || (rushActive && (game.isRusher?.(playerA) ?? false))) {
-						// D-Line always gets push power, rushers get it when rush is active
-						const pushPower = aIsDLine ? Math.max(0.6, game.rushPushThrough) : game.rushPushThrough;
+						// D-Line gets moderate push when not blocked
+						const pushPower = aIsDLine ? Math.max(0.4, game.rushPushThrough * 0.7) : game.rushPushThrough;
 						playerA.x += nx * overlap * pushPower * 0.5;
 						playerA.y += ny * overlap * pushPower * 0.5;
 						playerB.x += nx * overlap * (2 - pushPower);
 						playerB.y += ny * overlap * (2 - pushPower);
 					} else {
+						// Regular collision
 						playerA.x -= nx * overlap;
 						playerA.y -= ny * overlap;
 						playerB.x += nx * overlap;
@@ -92,20 +105,27 @@ export function resolveCollisions(game) {
 					}
 				} else if (playerB.team === "defense") {
 					if (bStunned) {
+						// Stunned defender gets pushed back hard
 						playerB.x += nx * overlap * 4;
 						playerB.y += ny * overlap * 4;
+					} else if (aIsBallCarrier) {
+						// Ball carrier (QB/RB tush push) overpowers defender
+						playerB.x += nx * overlap * 1.5;
+						playerB.y += ny * overlap * 1.5;
+						playerA.x += nx * overlap * 0.5;
+						playerA.y += ny * overlap * 0.5;
 					} else if (bIsDLine || (rushActive && (game.isRusher?.(playerB) ?? false))) {
-						// D-Line always gets push power, rushers get it when rush is active
-						const pushPower = bIsDLine ? Math.max(0.6, game.rushPushThrough) : game.rushPushThrough;
+						// D-Line gets moderate push when not blocked
+						const pushPower = bIsDLine ? Math.max(0.4, game.rushPushThrough * 0.7) : game.rushPushThrough;
 						playerB.x -= nx * overlap * pushPower * 0.5;
 						playerB.y -= ny * overlap * pushPower * 0.5;
 						playerA.x -= nx * overlap * (2 - pushPower);
 						playerA.y -= ny * overlap * (2 - pushPower);
 					} else {
+						// Regular collision
 						playerA.x -= nx * overlap;
 						playerA.y -= ny * overlap;
 						playerB.x += nx * overlap;
-						playerB.y += ny * overlap;
 						playerB.y += ny * overlap;
 					}
 				}

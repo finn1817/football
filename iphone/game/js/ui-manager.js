@@ -1,6 +1,7 @@
 import { yToYardLine } from "./characters.js";
 import { fetchHighscores, submitHighscore } from "../../../firebase/firebase.js";
 import { resetForNextPlay, startPlay } from "./next-play.js";
+import { FORMATIONS, getFormationsList, applyFormation } from "./starting-formation.js";
 
 const timerLabel = document.getElementById("timerLabel");
 const downLabel = document.getElementById("downLabel");
@@ -16,6 +17,7 @@ const resumeBtn = document.getElementById("resumeBtn");
 const pauseBackBtn = document.getElementById("pauseBackBtn");
 const pauseBtn = document.getElementById("pauseBtn");
 const leaderboardBtn = document.getElementById("leaderboardBtn");
+const formationBtn = document.getElementById("formationBtn");
 const mobileLeaderboard = document.getElementById("mobileLeaderboard");
 const mobileLeaderboardList = document.getElementById("mobileLeaderboardList");
 const mobileScoreNameInput = document.getElementById("mobileScoreNameInput");
@@ -132,6 +134,18 @@ async function submitScore(game) {
 }
 
 export function initUIHandlers(game) {
+	const abbr = {
+		[FORMATIONS.STANDARD]: "STD",
+		[FORMATIONS.I_FORMATION]: "I-FRM",
+		[FORMATIONS.SHOTGUN]: "SHOT",
+		[FORMATIONS.TRIPS]: "TRIPS",
+		[FORMATIONS.EMPTY]: "EMPTY"
+	};
+
+	if (formationBtn) {
+		formationBtn.textContent = `📋 ${abbr[game.currentFormation] || "STD"}`;
+	}
+
 	// Load saved player name
 	if (mobileScoreNameInput) {
 		const storedName = localStorage.getItem("iphone-player-name");
@@ -177,6 +191,22 @@ export function initUIHandlers(game) {
 	leaderboardBtn?.addEventListener("click", () => {
 		if (mobileLeaderboard) {
 			mobileLeaderboard.classList.toggle("active");
+		}
+	});
+
+	// Formation selector
+	formationBtn?.addEventListener("click", () => {
+		const formations = getFormationsList();
+		const currentIndex = formations.findIndex(f => f.name === game.currentFormation);
+		const nextIndex = (currentIndex + 1) % formations.length;
+		game.currentFormation = formations[nextIndex].name;
+		
+		// Update button text with abbreviation
+		formationBtn.textContent = `📋 ${abbr[game.currentFormation] || "STD"}`;
+		
+		// Apply formation immediately if in prep phase
+		if (game.state.prepPhase && !game.state.gameActive) {
+			applyFormation(game.roster, game.currentFormation, game.field, game.lineOfScrimmageY);
 		}
 	});
 

@@ -3,9 +3,9 @@ import { handleInterception } from "./next-play.js";
 export const LOB_HOLD_MS = 400;
 
 export function getThrowTargets(game) {
-	const validRoles = new Set(["WR", "TE", "RB"]);
+	const validRoles = new Set(["WR", "TE", "RB", "FB"]);
 	const targets = game.roster.filter(player => player.team === "offense" && validRoles.has(player.role));
-	const roleOrder = { WR: 1, TE: 2, RB: 3 };
+	const roleOrder = { WR: 1, TE: 2, RB: 3, FB: 4 };
 	targets.sort((a, b) => {
 		const roleDiff = (roleOrder[a.role] ?? 9) - (roleOrder[b.role] ?? 9);
 		if (roleDiff !== 0) return roleDiff;
@@ -89,7 +89,7 @@ export function attemptThrow(game, targetPlayer, isLob) {
 
 function canAutoJump(player) {
 	if (!player || player.team !== "offense") return false;
-	return player.role === "WR" || player.role === "TE" || player.role === "RB" || player.role === "QB";
+	return player.role === "WR" || player.role === "TE" || player.role === "RB" || player.role === "FB" || player.role === "QB";
 }
 
 function triggerJump(player) {

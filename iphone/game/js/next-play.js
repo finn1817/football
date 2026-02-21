@@ -1,5 +1,6 @@
 import { applyFormationToLine, getLineOfScrimmageY, yardLineToY, yToYardLine } from "./characters.js";
 import { setDefenseScheme } from "./movement.js";
+import { applyFormation } from "./starting-formation.js";
 
 export function startPlay(game) {
 	if (game.state.gameActive || game.state.isPaused || game.state.playEnded) return;
@@ -26,7 +27,16 @@ export function resetForNextPlay(game) {
 	const spotY = game.downsState.ballSpotY ?? getLineOfScrimmageY(game.field);
 	const yardLine = Math.round(yToYardLine(game.field, spotY));
 	localStorage.setItem("iphone-yard-line", String(yardLine));
-	applyFormationToLine(game.roster, yardLineToY(game.field, yardLine));
+	const lineY = yardLineToY(game.field, yardLine);
+	
+	// Apply current formation
+	if (game.currentFormation) {
+		applyFormation(game.roster, game.currentFormation, game.field, lineY);
+	} else {
+		// Fallback to old system if no formation set
+		applyFormationToLine(game.roster, lineY);
+	}
+	
 	game.roster.forEach(player => player.reset());
 	game.ballCarrier = game.roster.find(player => player.role === "QB") ?? game.roster[0];
 	game.roster.forEach(player => {
