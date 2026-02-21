@@ -113,9 +113,12 @@ export function moveDefense(game, deltaSeconds) {
 		const stunnedUntil = game.defenseStunUntil.get(defender.id) ?? 0;
 		if (stunnedUntil > now) return;
 		let target = null;
+		
+		// D-Line ALWAYS chases ball carrier aggressively
 		if (defender.role === "DL") {
 			target = chaseTarget;
 		} else if ((game.passAttempted || game.ballFlight?.active || qbRunning) && chaseTarget) {
+			// All other defenders chase ball carrier after pass or QB run
 			target = chaseTarget;
 		} else {
 			if (scheme === "zone" || (scheme === "blitz" && deepestIds.has(defender.id))) {
@@ -146,9 +149,7 @@ export function moveDefense(game, deltaSeconds) {
 					if (defender.role === "S") {
 						target = rushActive ? (qb ?? chaseTarget) : chaseTarget;
 					}
-					if (defender.role === "DL") {
-						target = chaseTarget;
-					}
+					// DL always chases ball carrier, no need for redundant logic here
 				}
 			}
 		}

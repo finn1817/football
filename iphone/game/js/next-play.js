@@ -58,6 +58,20 @@ export function handleTackleResult(game) {
 	game.state.gameActive = false;
 	game.state.playEnded = true;
 	game.downsState.ballSpotY = game.ballCarrier.y;
+	
+	// Check for safety (tackled in own endzone)
+	if (game.ballCarrier && game.ballCarrier.y > game.field.bottomY) {
+		game.downsState.gameOver = true;
+		game.setTimerText("SAFETY! GAME OVER");
+		game.stats.score += 0; // Safety doesn't add to offense score
+		game.updateDownsPanel();
+		game.setNextPlayVisible(false);
+		if (typeof game.onGameOver === "function") {
+			game.onGameOver();
+		}
+		return;
+	}
+	
 	if (game.downsState.ballSpotY <= game.downsState.lineToGainY) {
 		game.downsState.down = 1;
 		game.downsState.lineToGainY = game.downsState.ballSpotY - (10 * game.pixelsPerYard);

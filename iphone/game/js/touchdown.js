@@ -5,11 +5,13 @@ export function checkTouchdown(game) {
 	if (!game.ballCarrier || game.ballCarrier.team !== "offense") return;
 	if (game.ballCarrier.y >= game.field.topY) return;
 
+	console.log("🏈 TOUCHDOWN SCORED!");
 	game.state.gameActive = false;
 	game.state.playEnded = true;
 	game.setTimerText("TOUCHDOWN!");
 	game.stats.touchdowns += 1;
 	game.stats.score += 7;
+	console.log("Score updated:", game.stats.score, "TDs:", game.stats.touchdowns);
 	game.downsState.down = 1;
 	localStorage.setItem("iphone-yard-line", "25");
 	game.downsState.ballSpotY = yardLineToY(game.field, 25);

@@ -24,12 +24,18 @@ console.log("Canvas initialized:", canvas.width, "x", canvas.height);
 
 let currentDifficulty = Number(localStorage.getItem("iphone-difficulty") ?? "2");
 
+// Detect iOS
+const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+console.log("Running on iOS:", isIOS);
+console.log("User Agent:", navigator.userAgent);
+
 // Error display for mobile debugging
 function showError(message) {
 	const errorDiv = document.createElement("div");
-	errorDiv.style.cssText = "position:fixed;top:0;left:0;right:0;background:#ff0000;color:#fff;padding:20px;z-index:99999;font-family:monospace;font-size:14px;white-space:pre-wrap;max-height:50vh;overflow:auto;";
+	errorDiv.style.cssText = "position:fixed;top:0;left:0;right:0;bottom:0;background:#ff0000;color:#fff;padding:20px;z-index:99999;font-family:monospace;font-size:16px;white-space:pre-wrap;overflow:auto;";
 	errorDiv.textContent = "ERROR:\n" + message;
 	document.body.appendChild(errorDiv);
+	alert("Error: " + message.split("\n")[0]); // Also alert for iOS
 }
 
 const game = {
@@ -176,11 +182,6 @@ function initializeGameState() {
 	resizeCanvas();
 	console.log("Canvas resized to:", canvas.width, "x", canvas.height);
 	
-	// Test draw to verify canvas is working
-	ctx.fillStyle = "#00ff00";
-	ctx.fillRect(10, 10, 100, 100);
-	console.log("Test green square drawn");
-	
 	game.roster = buildRoster(game.field);
 	console.log("Roster built:", game.roster.length, "players");
 	setFormationOffsets(game.roster);
@@ -250,6 +251,15 @@ function render(timestamp) {
 
 // Initialize everything
 console.log("Starting initialization...");
+console.log("=".repeat(50));
+
+// Show loading indicator
+const loadingDiv = document.createElement("div");
+loadingDiv.id = "gameLoading";
+loadingDiv.style.cssText = "position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);color:#ffd54a;font-size:24px;font-weight:bold;z-index:9999;";
+loadingDiv.textContent = "LOADING GAME...";
+document.body.appendChild(loadingDiv);
+
 try {
 	initFirebase();
 	console.log("✓ Firebase initialized");
@@ -266,11 +276,16 @@ try {
 	refreshLeaderboard();
 	console.log("✓ Leaderboard refreshed");
 	
+	// Remove loading indicator
+	loadingDiv.remove();
+	
 	console.log("Starting render loop...");
 	requestAnimationFrame(render);
 	console.log("✓ All initialized successfully!");
+	console.log("=".repeat(50));
 } catch (error) {
 	console.error("Initialization error:", error);
+	loadingDiv.remove();
 	showError("Initialization failed:\n" + error.message + "\n\nStack:\n" + error.stack);
 	throw error;
 }

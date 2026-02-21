@@ -69,12 +69,17 @@ export function resolveCollisions(game) {
 				const aStunned = playerA.team === "defense" && (game.defenseStunUntil.get(playerA.id) ?? 0) > performance.now();
 				const bStunned = playerB.team === "defense" && (game.defenseStunUntil.get(playerB.id) ?? 0) > performance.now();
 				
+				// D-Line gets extra push power to penetrate O-line
+				const aIsDLine = playerA.team === "defense" && playerA.role === "DL";
+				const bIsDLine = playerB.team === "defense" && playerB.role === "DL";
+				
 				if (playerA.team === "defense") {
 					if (aStunned) {
 						playerA.x -= nx * overlap * 4;
 						playerA.y -= ny * overlap * 4;
-					} else if (rushActive && (game.isRusher?.(playerA) ?? false)) {
-						const pushPower = game.rushPushThrough;
+					} else if (aIsDLine || (rushActive && (game.isRusher?.(playerA) ?? false))) {
+						// D-Line always gets push power, rushers get it when rush is active
+						const pushPower = aIsDLine ? Math.max(0.6, game.rushPushThrough) : game.rushPushThrough;
 						playerA.x += nx * overlap * pushPower * 0.5;
 						playerA.y += ny * overlap * pushPower * 0.5;
 						playerB.x += nx * overlap * (2 - pushPower);
@@ -89,8 +94,9 @@ export function resolveCollisions(game) {
 					if (bStunned) {
 						playerB.x += nx * overlap * 4;
 						playerB.y += ny * overlap * 4;
-					} else if (rushActive && (game.isRusher?.(playerB) ?? false)) {
-						const pushPower = game.rushPushThrough;
+					} else if (bIsDLine || (rushActive && (game.isRusher?.(playerB) ?? false))) {
+						// D-Line always gets push power, rushers get it when rush is active
+						const pushPower = bIsDLine ? Math.max(0.6, game.rushPushThrough) : game.rushPushThrough;
 						playerB.x -= nx * overlap * pushPower * 0.5;
 						playerB.y -= ny * overlap * pushPower * 0.5;
 						playerA.x -= nx * overlap * (2 - pushPower);
@@ -99,6 +105,7 @@ export function resolveCollisions(game) {
 						playerA.x -= nx * overlap;
 						playerA.y -= ny * overlap;
 						playerB.x += nx * overlap;
+						playerB.y += ny * overlap;
 						playerB.y += ny * overlap;
 					}
 				}

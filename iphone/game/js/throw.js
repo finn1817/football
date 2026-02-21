@@ -127,16 +127,25 @@ export function advanceBallFlight(game) {
 	if (game.ballFlight.lob && arcOffset < reachableHeight) {
 		const shallowLob = game.ballFlight.arcHeight <= 60;
 		const now = performance.now();
+		const cfg = game.difficultyConfig ?? { interceptionRadius: 20 };
+		const tightCoverageRadius = Math.min(18, cfg.interceptionRadius * 0.6);
+		
 		for (const def of game.roster) {
 			if (def.team !== "defense") continue;
 			if (def.role === "DL" && progress > 0.2) continue;
 			const stunnedUntil = game.defenseStunUntil.get(def.id) ?? 0;
 			if (stunnedUntil > now) continue;
+			
+			// Check if defender is TIGHT on the target receiver
+			const distToTarget = Math.hypot(def.x - game.ballFlight.target.x, def.y - game.ballFlight.target.y);
+			const isTightCoverage = distToTarget < tightCoverageRadius;
+			
 			const distToShadow = Math.hypot(def.x - game.ballFlight.x, def.y - groundY);
 			const distToStart = Math.hypot(def.x - game.ballFlight.startX, def.y - game.ballFlight.startY);
-			const distToTarget = Math.hypot(def.x - game.ballFlight.target.x, def.y - game.ballFlight.target.y);
 			const inEarlyWindow = progress < 0.12 && distToStart < 24;
-			const inLateWindow = progress > 0.75 && distToTarget < 30;
+			const inLateWindow = progress > 0.65 && isTightCoverage;
+			
+			// Intercept if defender is tight on receiver during late flight, or other conditions
 			if (distToShadow < 20 && (shallowLob || inEarlyWindow || inLateWindow)) {
 				game.ballFlight.interceptTarget = def;
 				progress = 1;
