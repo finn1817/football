@@ -10,9 +10,27 @@ import { initInputHandlers } from "./input-handler.js";
 import { initUIHandlers, setTimerText, setNextPlayVisible, setSubmitEnabled, updateDownsPanel, updateTimer, refreshLeaderboard, setPaused } from "./ui-manager.js";
 
 const canvas = document.getElementById("gameCanvas");
+if (!canvas) {
+	console.error("Canvas element not found!");
+	throw new Error("Canvas element #gameCanvas not found");
+}
 const ctx = canvas.getContext("2d");
+if (!ctx) {
+	console.error("Failed to get 2D context!");
+	throw new Error("Failed to get 2D rendering context");
+}
+
+console.log("Canvas initialized:", canvas.width, "x", canvas.height);
 
 let currentDifficulty = Number(localStorage.getItem("iphone-difficulty") ?? "2");
+
+// Error display for mobile debugging
+function showError(message) {
+	const errorDiv = document.createElement("div");
+	errorDiv.style.cssText = "position:fixed;top:0;left:0;right:0;background:#ff0000;color:#fff;padding:20px;z-index:99999;font-family:monospace;font-size:14px;white-space:pre-wrap;max-height:50vh;overflow:auto;";
+	errorDiv.textContent = "ERROR:\n" + message;
+	document.body.appendChild(errorDiv);
+}
 
 const game = {
 	field: {
@@ -134,8 +152,17 @@ const game = {
 
 function resizeCanvas() {
 	const rect = canvas.getBoundingClientRect();
+	console.log("Canvas bounding rect:", rect);
 	canvas.width = Math.max(320, Math.floor(rect.width));
 	canvas.height = Math.max(520, Math.floor(rect.height));
+	console.log("Canvas size set to:", canvas.width, "x", canvas.height);
+	
+	if (canvas.width === 0 || canvas.height === 0) {
+		console.warn("Canvas has zero dimensions! Using fallback values.");
+		canvas.width = 390; // iPhone default width
+		canvas.height = 600; // fallback height
+	}
+	
 	game.field.width = canvas.width;
 	game.field.height = canvas.height;
 	game.field.topY = FIELD_CONFIG.endzoneHeight;
@@ -145,13 +172,23 @@ function resizeCanvas() {
 }
 
 function initializeGameState() {
+	console.log("Starting initializeGameState...");
 	resizeCanvas();
+	console.log("Canvas resized to:", canvas.width, "x", canvas.height);
+	
+	// Test draw to verify canvas is working
+	ctx.fillStyle = "#00ff00";
+	ctx.fillRect(10, 10, 100, 100);
+	console.log("Test green square drawn");
+	
 	game.roster = buildRoster(game.field);
+	console.log("Roster built:", game.roster.length, "players");
 	setFormationOffsets(game.roster);
 	game.lineOfScrimmageY = getLineOfScrimmageY(game.field);
 	applyFormationToLine(game.roster, game.lineOfScrimmageY);
 	
 	const cfg = DIFFICULTY_CONFIG[currentDifficulty];
+	console.log("Difficulty config:", cfg);
 	applySpeeds(game.roster, cfg.defSpeedMult);
 	game.difficultyConfig = cfg;
 	
@@ -176,7 +213,10 @@ function initializeGameState() {
 }
 
 function render(timestamp) {
-	if (!game.lastFrameTime) game.lastFrameTime = timestamp;
+	if (!game.lastFrameTime) {
+		game.lastFrameTime = timestamp;
+		console.log("First render frame at:", timestamp);
+	}
 	const deltaSeconds = Math.min(0.05, (timestamp - game.lastFrameTime) / 1000);
 	game.lastFrameTime = timestamp;
 
@@ -194,24 +234,49 @@ function render(timestamp) {
 		game.lineOfScrimmageY = game.downsState.ballSpotY ?? game.lineOfScrimmageY;
 	}
 
-	drawField(ctx, canvas, game);
-	drawRoutes(ctx, game);
-	drawPlayers(ctx, game);
-	drawPrepCountdown(ctx, canvas, game);
+	try {
+		drawField(ctx, canvas, game);
+		drawRoutes(ctx, game);
+		drawPlayers(ctx, game);
+		drawPrepCountdown(ctx, canvas, game);
+	} catch (error) {
+		console.error("Render error:", error);
+		showError("Render failed:\n" + error.message + "\n\nStack:\n" + error.stack);
+		return; // Stop the render loop
+	}
 	
 	requestAnimationFrame(render);
 }
 
 // Initialize everything
-initFirebase();
-initializeGameState();
-initInputHandlers(canvas, game);
-initUIHandlers(game);
-refreshLeaderboard();
+console.log("Starting initialization...");
+try {
+	initFirebase();
+	console.log("✓ Firebase initialized");
+	
+	initializeGameState();
+	console.log("✓ Game state initialized");
+	
+	initInputHandlers(canvas, game);
+	console.log("✓ Input handlers initialized");
+	
+	initUIHandlers(game);
+	console.log("✓ UI handlers initialized");
+	
+	refreshLeaderboard();
+	console.log("✓ Leaderboard refreshed");
+	
+	console.log("Starting render loop...");
+	requestAnimationFrame(render);
+	console.log("✓ All initialized successfully!");
+} catch (error) {
+	console.error("Initialization error:", error);
+	showError("Initialization failed:\n" + error.message + "\n\nStack:\n" + error.stack);
+	throw error;
+}
 
 window.addEventListener("resize", () => {
 	initializeGameState();
 });
 
-requestAnimationFrame(render);
 
