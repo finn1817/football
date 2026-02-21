@@ -1,7 +1,7 @@
 import { handleTackleResult } from "./next-play.js";
 
 const COLLISION_DISTANCE = 30;
-const TACKLE_DISTANCE = 22;
+const TACKLE_DISTANCE = 26;
 const DEFENDER_STUN_MS = 1000;
 
 function getTackleHoldMultiplier(role) {
@@ -104,18 +104,26 @@ export function checkTackle(game) {
 	const now = performance.now();
 	const roleMultiplier = getTackleHoldMultiplier(game.ballCarrier.role);
 	const baseHold = game.difficultyConfig?.tackleHold ?? game.tackleHoldSeconds;
-	const adjustedTackleTime = baseHold * roleMultiplier;
 	const activeIds = new Set();
-	const tackled = game.roster.some(defender => {
-		if (defender.team !== "defense") return false;
+	const closeDefenders = [];
+	game.roster.forEach(defender => {
+		if (defender.team !== "defense") return;
 		const dist = Math.hypot(defender.x - game.ballCarrier.x, defender.y - game.ballCarrier.y);
 		if (dist <= TACKLE_DISTANCE) {
-			activeIds.add(defender.id);
-			const startedAt = game.tackleContact.get(defender.id) ?? now;
-			game.tackleContact.set(defender.id, startedAt);
-			return (now - startedAt) / 1000 >= adjustedTackleTime;
+			closeDefenders.push(defender);
 		}
-		return false;
+	});
+	const pileCount = closeDefenders.length;
+	let pileMultiplier = 1;
+	if (pileCount >= 3) pileMultiplier = 0.35;
+	else if (pileCount === 2) pileMultiplier = 0.5;
+	const adjustedTackleTime = baseHold * roleMultiplier * pileMultiplier;
+
+	const tackled = closeDefenders.some(defender => {
+		activeIds.add(defender.id);
+		const startedAt = game.tackleContact.get(defender.id) ?? now;
+		game.tackleContact.set(defender.id, startedAt);
+		return (now - startedAt) / 1000 >= adjustedTackleTime;
 	});
 	game.tackleContact.forEach((_, id) => {
 		if (!activeIds.has(id)) {
